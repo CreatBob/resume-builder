@@ -71,11 +71,21 @@ function removeAvatar() {
           <div class="avatar-area">
             <div class="avatar-preview" @click="($refs.avatarInput as HTMLInputElement).click()">
               <img v-if="store.basicInfo.avatar" :src="store.basicInfo.avatar" alt="头像" />
-              <span v-else class="avatar-placeholder">📷</span>
+              <svg v-else class="avatar-placeholder" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+                <circle cx="12" cy="13" r="4"/>
+              </svg>
               <div class="avatar-overlay">上传</div>
             </div>
             <div v-if="store.basicInfo.avatar" class="avatar-actions">
-              <button class="btn-icon" title="删除" @click="removeAvatar">🗑</button>
+              <button class="btn-icon" title="删除" @click="removeAvatar">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="3 6 5 6 21 6"/>
+                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                  <line x1="10" y1="11" x2="10" y2="17"/>
+                  <line x1="14" y1="11" x2="14" y2="17"/>
+                </svg>
+              </button>
             </div>
           </div>
           <input ref="avatarInput" type="file" accept="image/*" style="display:none" @change="handleAvatarUpload" />
@@ -345,8 +355,10 @@ function removeAvatar() {
   object-fit: cover;
 }
 .avatar-placeholder {
-  font-size: 1.5rem;
-  opacity: 0.4;
+  width: 32px;
+  height: 32px;
+  color: var(--gray-400);
+  opacity: 0.6;
 }
 .avatar-overlay {
   position: absolute;

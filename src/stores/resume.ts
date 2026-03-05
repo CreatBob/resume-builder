@@ -77,7 +77,6 @@ function genId(): string {
 }
 
 export const useResumeStore = defineStore('resume', () => {
-  // Module visibility
   const modules = reactive<ModuleConfig[]>([
     { key: 'basicInfo', label: '基本信息', icon: '👤', visible: true },
     { key: 'education', label: '教育经历', icon: '🎓', visible: true },
@@ -88,7 +87,6 @@ export const useResumeStore = defineStore('resume', () => {
     { key: 'selfIntro', label: '个人简介', icon: '📝', visible: false },
   ])
 
-  // Basic Info
   const basicInfo = reactive<BasicInfo>({
     name: '',
     phone: '',
@@ -109,7 +107,6 @@ export const useResumeStore = defineStore('resume', () => {
     github: '',
   })
 
-  // Education
   const educationList = reactive<EducationEntry[]>([
     {
       id: genId(),
@@ -126,10 +123,8 @@ export const useResumeStore = defineStore('resume', () => {
     },
   ])
 
-  // Skills
   const skills = ref('')
 
-  // Work Experience
   const workList = reactive<WorkEntry[]>([
     {
       id: genId(),
@@ -143,7 +138,6 @@ export const useResumeStore = defineStore('resume', () => {
     },
   ])
 
-  // Project Experience
   const projectList = reactive<ProjectEntry[]>([
     {
       id: genId(),
@@ -157,13 +151,9 @@ export const useResumeStore = defineStore('resume', () => {
     },
   ])
 
-  // Awards
   const awardList = reactive<AwardEntry[]>([])
-
-  // Self Intro
   const selfIntro = ref('')
 
-  // Actions
   function toggleModule(key: string) {
     const mod = modules.find((m) => m.key === key)
     if (mod) mod.visible = !mod.visible
@@ -245,18 +235,17 @@ export const useResumeStore = defineStore('resume', () => {
     if (idx > -1) awardList.splice(idx, 1)
   }
 
-  // --- LocalStorage persistence ---
   const STORAGE_KEY = 'resume-builder-data'
 
   function saveToStorage() {
     const data = {
-      modules: modules.map(m => ({ ...m })),
+      modules: modules.map((m) => ({ ...m })),
       basicInfo: { ...basicInfo },
-      educationList: educationList.map(e => ({ ...e })),
+      educationList: educationList.map((e) => ({ ...e })),
       skills: skills.value,
-      workList: workList.map(w => ({ ...w })),
-      projectList: projectList.map(p => ({ ...p })),
-      awardList: awardList.map(a => ({ ...a })),
+      workList: workList.map((w) => ({ ...w })),
+      projectList: projectList.map((p) => ({ ...p })),
+      awardList: awardList.map((a) => ({ ...a })),
       selfIntro: selfIntro.value,
     }
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data))
@@ -292,13 +281,20 @@ export const useResumeStore = defineStore('resume', () => {
     }
   }
 
-  // Load saved data on init
   loadFromStorage()
 
-  // Auto-save on any change (debounced)
   let saveTimer: ReturnType<typeof setTimeout> | null = null
   watch(
-    [() => JSON.stringify(basicInfo), () => JSON.stringify(educationList), skills, () => JSON.stringify(workList), () => JSON.stringify(projectList), () => JSON.stringify(awardList), selfIntro, () => JSON.stringify(modules)],
+    [
+      () => JSON.stringify(basicInfo),
+      () => JSON.stringify(educationList),
+      skills,
+      () => JSON.stringify(workList),
+      () => JSON.stringify(projectList),
+      () => JSON.stringify(awardList),
+      selfIntro,
+      () => JSON.stringify(modules),
+    ],
     () => {
       if (saveTimer) clearTimeout(saveTimer)
       saveTimer = setTimeout(() => saveToStorage(), 500)

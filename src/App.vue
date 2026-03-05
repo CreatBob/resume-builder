@@ -24,6 +24,7 @@ import PreviewPanel from '@/components/PreviewPanel.vue'
 .main-content {
   flex: 1;
   display: flex;
-  overflow: hidden;
+  overflow: auto;
+  min-width: 0;
 }
 </style>

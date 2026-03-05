@@ -1,259 +1,154 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import { useResumeStore } from '@/stores/resume'
-import { ref } from 'vue'
 
 const store = useResumeStore()
-const collapsed = ref(false)
 
-const handleKeyDown = (e: KeyboardEvent, moduleKey: string) => {
-  if (e.key === 'Enter' || e.key === ' ') {
-    e.preventDefault()
-    store.toggleModule(moduleKey)
-  }
-}
+const enabledCount = computed(() => store.modules.filter((m) => m.visible).length)
+const progressPercent = computed(() => Math.round((enabledCount.value / store.modules.length) * 100))
 </script>
 
 <template>
-  <aside class="sidebar" :class="{ collapsed }">
-    <div class="sidebar-header">
-      <div class="logo" v-show="!collapsed">
-        <svg class="logo-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-          <polyline points="14 2 14 8 20 8"/>
-          <line x1="12" y1="11" x2="12" y2="17"/>
-          <line x1="9" y1="14" x2="15" y2="14"/>
-        </svg>
-        <span class="logo-text">我的简历</span>
-      </div>
-      <button
-        class="collapse-btn"
-        @click="collapsed = !collapsed"
-        :title="collapsed ? '展开菜单' : '收起菜单'"
-        :aria-label="collapsed ? '展开菜单' : '收起菜单'"
-        :aria-expanded="!collapsed"
-      >
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" :style="{ transform: collapsed ? 'rotate(180deg)' : '' }">
-          <path d="M10 4L6 8L10 12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-      </button>
+  <aside class="sidebar">
+    <div class="brand">
+      <span class="brand-mark"></span>
+      <span class="brand-text">Resume Builder</span>
     </div>
 
-    <div class="sidebar-content" v-show="!collapsed">
-      <div class="section-title">
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-          <rect x="1" y="1" width="6" height="6" rx="1" stroke="currentColor" stroke-width="1.5"/>
-          <rect x="9" y="1" width="6" height="6" rx="1" stroke="currentColor" stroke-width="1.5"/>
-          <rect x="1" y="9" width="6" height="6" rx="1" stroke="currentColor" stroke-width="1.5"/>
-          <rect x="9" y="9" width="6" height="6" rx="1" stroke="currentColor" stroke-width="1.5"/>
-        </svg>
-        <span>模块选择</span>
-      </div>
+    <p class="menu-caption">模块开关</p>
 
-      <ul class="module-list">
-        <li
-          v-for="mod in store.modules"
-          :key="mod.key"
-          class="module-item"
-          :class="{ active: mod.visible }"
-        >
-          <div class="module-info">
-            <span class="module-icon" :aria-hidden="true">{{ mod.icon }}</span>
-            <span class="module-label">{{ mod.label }}</span>
-          </div>
-          <label class="toggle-switch" :for="'toggle-' + mod.key">
-            <input
-              :id="'toggle-' + mod.key"
-              type="checkbox"
-              :checked="mod.visible"
-              @change="store.toggleModule(mod.key)"
-              @keydown="handleKeyDown($event, mod.key)"
-              :aria-label="`${mod.label} - ${mod.visible ? '已启用' : '已禁用'}`"
-            />
-            <span class="toggle-slider"></span>
-          </label>
-        </li>
-      </ul>
-    </div>
-
-    <!-- Collapsed: show only icons -->
-    <div class="sidebar-collapsed-icons" v-show="collapsed">
-      <div
+    <ul class="module-list">
+      <li
         v-for="mod in store.modules"
         :key="mod.key"
-        class="collapsed-icon"
-        :class="{ active: mod.visible }"
-        :title="mod.label"
-        @click="store.toggleModule(mod.key)"
-        @keydown="handleKeyDown($event, mod.key)"
-        role="button"
-        tabindex="0"
-        :aria-label="`${mod.label} - ${mod.visible ? '已启用' : '已禁用'}`"
+        class="module-item"
+        :class="{ active: mod.visible, muted: !mod.visible }"
       >
-        {{ mod.icon }}
+        <div class="module-info">
+          <span class="module-icon">{{ mod.icon }}</span>
+          <span class="module-label">{{ mod.label }}</span>
+        </div>
+
+        <label class="toggle-switch">
+          <input
+            type="checkbox"
+            :checked="mod.visible"
+            :aria-label="`${mod.label}开关`"
+            @change="store.toggleModule(mod.key)"
+          />
+          <span class="toggle-slider"></span>
+        </label>
+      </li>
+    </ul>
+
+    <div class="profile-card">
+      <div class="profile-name">你好，张同学</div>
+      <div class="profile-meta">已完成度 {{ progressPercent }}%</div>
+      <div class="progress-track">
+        <div class="progress-fill" :style="{ width: `${progressPercent}%` }"></div>
       </div>
+      <button class="continue-btn">继续编辑</button>
     </div>
   </aside>
 </template>
 
 <style scoped>
 .sidebar {
-  width: 220px;
-  min-width: 220px;
-  background: var(--bg-sidebar);
+  width: 272px;
+  min-width: 272px;
+  background: #efe7dc;
+  padding: 18px 14px;
   display: flex;
   flex-direction: column;
-  border-right: 1px solid rgba(255, 255, 255, 0.06);
+  gap: 14px;
+  border-right: 1px solid #dfd2c2;
   overflow-y: auto;
-  transition: width var(--transition-base), min-width var(--transition-base);
 }
 
-.sidebar.collapsed {
-  width: 56px;
-  min-width: 56px;
-}
-
-.sidebar-header {
-  padding: var(--spacing-lg);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+.brand {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: var(--spacing-sm);
+  gap: 8px;
+  padding: 4px 4px 2px;
 }
 
-.sidebar.collapsed .sidebar-header {
-  justify-content: center;
-  padding: var(--spacing-lg) var(--spacing-sm);
+.brand-mark {
+  width: 12px;
+  height: 12px;
+  border-radius: 4px;
+  background: #d97745;
 }
 
-.logo {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-sm);
+.brand-text {
+  font-family: 'Noto Sans SC', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  color: #2d2521;
 }
 
-.logo-icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 24px;
-  height: 24px;
-  color: var(--primary-500);
-  flex-shrink: 0;
-}
-
-.logo-text {
-  font-size: 1.1rem;
+.menu-caption {
+  color: #8a7461;
+  font-size: 11px;
   font-weight: 600;
-  color: var(--text-inverse);
-  letter-spacing: 0.02em;
-  white-space: nowrap;
-}
-
-.collapse-btn {
-  width: 28px;
-  height: 28px;
-  border: none;
-  background: rgba(255, 255, 255, 0.08);
-  color: var(--gray-400);
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all var(--transition-fast);
-  flex-shrink: 0;
-}
-
-.collapse-btn:hover {
-  background: rgba(255, 255, 255, 0.15);
-  color: white;
-}
-
-.collapse-btn:focus-visible {
-  outline: 2px solid var(--primary-500);
-  outline-offset: 2px;
-}
-
-.collapse-btn svg {
-  transition: transform var(--transition-base);
-}
-
-.sidebar-content {
-  padding: var(--spacing-lg);
-  flex: 1;
-}
-
-.section-title {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-sm);
-  color: var(--gray-400);
-  font-size: 0.78rem;
-  font-weight: 500;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  margin-bottom: var(--spacing-md);
-  padding: 0 var(--spacing-xs);
+  letter-spacing: 0.03em;
+  padding: 0 6px;
 }
 
 .module-list {
   list-style: none;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 8px;
 }
 
 .module-item {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: var(--spacing-sm) var(--spacing-md);
-  border-radius: var(--radius-md);
-  transition: all var(--transition-fast);
-  cursor: default;
+  border-radius: 10px;
+  padding: 10px 12px;
   border: 1px solid transparent;
-}
-
-.module-item:hover {
-  background: rgba(255, 255, 255, 0.06);
+  background: #f2ece5;
+  transition: all 0.18s ease;
 }
 
 .module-item.active {
-  background: rgba(59, 130, 246, 0.1);
-  border-color: rgba(59, 130, 246, 0.2);
+  background: #ffffff;
+  border-color: #e9ded0;
 }
 
-.module-item:focus-within {
-  background: rgba(255, 255, 255, 0.08);
-  border-color: rgba(59, 130, 246, 0.3);
+.module-item.muted {
+  opacity: 0.9;
 }
 
 .module-info {
   display: flex;
   align-items: center;
-  gap: var(--spacing-sm);
+  gap: 10px;
+  min-width: 0;
 }
 
 .module-icon {
-  font-size: 1rem;
-  width: 20px;
+  width: 18px;
   text-align: center;
+  font-size: 14px;
+  flex-shrink: 0;
 }
 
 .module-label {
-  color: var(--gray-200);
-  font-size: 0.88rem;
-  font-weight: 400;
+  color: #2d2521;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-/* Toggle Switch */
 .toggle-switch {
   position: relative;
-  display: inline-block;
-  width: 36px;
-  height: 20px;
-  cursor: pointer;
+  width: 42px;
+  height: 24px;
+  flex-shrink: 0;
 }
 
 .toggle-switch input {
@@ -262,78 +157,83 @@ const handleKeyDown = (e: KeyboardEvent, moduleKey: string) => {
   height: 0;
 }
 
-.toggle-switch input:focus-visible + .toggle-slider {
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
-}
-
 .toggle-slider {
   position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: var(--gray-600);
-  border-radius: var(--radius-full);
-  transition: var(--transition-base);
+  inset: 0;
+  border-radius: 999px;
+  background: #b8afa6;
+  transition: 0.2s ease;
 }
 
 .toggle-slider::before {
   content: '';
   position: absolute;
-  height: 16px;
-  width: 16px;
-  left: 2px;
-  bottom: 2px;
-  background: white;
+  width: 18px;
+  height: 18px;
+  left: 3px;
+  top: 3px;
   border-radius: 50%;
-  transition: var(--transition-base);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  background: #ffffff;
+  transition: 0.2s ease;
 }
 
 .toggle-switch input:checked + .toggle-slider {
-  background: var(--primary-500);
+  background: #d97745;
 }
 
 .toggle-switch input:checked + .toggle-slider::before {
-  transform: translateX(16px);
+  transform: translateX(18px);
 }
 
-/* Collapsed Icons */
-.sidebar-collapsed-icons {
+.profile-card {
+  margin-top: auto;
+  padding: 12px;
+  border-radius: 10px;
+  background: #ffffff;
+  border: 1px solid #e9ded0;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  padding: var(--spacing-sm);
-  gap: 4px;
+  gap: 8px;
 }
 
-.collapsed-icon {
-  width: 36px;
-  height: 36px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: var(--radius-md);
-  font-size: 1.1rem;
+.profile-name {
+  color: #2d2521;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.profile-meta {
+  color: #8a7461;
+  font-size: 11px;
+}
+
+.progress-track {
+  width: 100%;
+  height: 8px;
+  border-radius: 999px;
+  background: #e6d8ca;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  border-radius: inherit;
+  background: #d97745;
+  transition: width 0.25s ease;
+}
+
+.continue-btn {
+  border: none;
+  height: 34px;
+  border-radius: 9px;
+  background: #2d2521;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 600;
   cursor: pointer;
-  transition: all var(--transition-fast);
-  opacity: 0.4;
-  border: 1px solid transparent;
 }
 
-.collapsed-icon:hover {
-  background: rgba(255, 255, 255, 0.15);
-  opacity: 1;
-}
-
-.collapsed-icon:focus-visible {
-  outline: 2px solid var(--primary-500);
-  outline-offset: 2px;
-}
-
-.collapsed-icon.active {
-  opacity: 1;
-  background: rgba(59, 130, 246, 0.15);
-  border-color: rgba(59, 130, 246, 0.3);
+.continue-btn:hover {
+  background: #1f1916;
 }
 </style>
