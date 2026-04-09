@@ -2,6 +2,7 @@
 import { useResumeStore } from '@/stores/resume'
 import { ref } from 'vue'
 import RichEditor from '@/components/common/RichEditor.vue'
+// author: jf
 
 const store = useResumeStore()
 const collapsed = ref(false)
@@ -26,13 +27,32 @@ const collapsed = ref(false)
       >
         <div class="entry-header">
           <span class="entry-index">项目经历 {{ index + 1 }}</span>
-          <button
-            v-if="store.projectList.length > 1"
-            class="btn-remove"
-            @click="store.removeProject(proj.id)"
-          >
-            ✕
-          </button>
+          <div class="btn-actions">
+            <button
+              class="btn-move"
+              :disabled="!store.canMoveProject(proj.id, 'up')"
+              title="上移"
+              @click.stop="store.moveProject(proj.id, 'up')"
+            >
+              ↑
+            </button>
+            <button
+              class="btn-move"
+              :disabled="!store.canMoveProject(proj.id, 'down')"
+              title="下移"
+              @click.stop="store.moveProject(proj.id, 'down')"
+            >
+              ↓
+            </button>
+            <button
+              v-if="store.projectList.length > 1"
+              class="btn-remove"
+              title="删除"
+              @click.stop="store.removeProject(proj.id)"
+            >
+              ✕
+            </button>
+          </div>
         </div>
 
         <div class="form-grid">
@@ -157,6 +177,38 @@ const collapsed = ref(false)
   font-size: 0.82rem;
   font-weight: 600;
   color: var(--primary-600);
+}
+
+.btn-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.btn-move {
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--gray-200);
+  background: white;
+  color: var(--gray-600);
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 0.78rem;
+  transition: all var(--transition-fast);
+}
+
+.btn-move:hover:not(:disabled) {
+  border-color: var(--primary-300);
+  color: var(--primary-600);
+  background: var(--primary-50);
+}
+
+.btn-move:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
 }
 
 .btn-remove {

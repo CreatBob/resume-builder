@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { reactive, ref, watch } from 'vue'
 import { normalizeResumeTemplateKey, type ResumeTemplateKey } from '@/templates/resume'
+// author: jf
 
 export interface BasicInfo {
   name: string
@@ -302,6 +303,25 @@ export const useResumeStore = defineStore('resume', () => {
     if (idx > -1) projectList.splice(idx, 1)
   }
 
+  function canMoveProject(id: string, direction: MoveDirection): boolean {
+    const idx = projectList.findIndex((e) => e.id === id)
+    if (idx < 0) return false
+    if (direction === 'up') return idx > 0
+    return idx < projectList.length - 1
+  }
+
+  function moveProject(id: string, direction: MoveDirection) {
+    if (!canMoveProject(id, direction)) return
+    const idx = projectList.findIndex((e) => e.id === id)
+    if (idx < 0) return
+    const target = direction === 'up' ? idx - 1 : idx + 1
+    const current = projectList[idx]
+    const next = projectList[target]
+    if (!current || !next) return
+    projectList[idx] = next
+    projectList[target] = current
+  }
+
   function addAward() {
     awardList.push({
       id: genId(),
@@ -459,6 +479,8 @@ export const useResumeStore = defineStore('resume', () => {
     removeWork,
     addProject,
     removeProject,
+    canMoveProject,
+    moveProject,
     addAward,
     removeAward,
     saveToStorage,
