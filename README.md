@@ -61,13 +61,19 @@ npm run dev
 
 ### 方式 B：前后端联调（推荐）
 
-1. 启动后端依赖数据库（在 `spring-ai-backend/` 下）：
+1. 复制后端环境变量模板（在 `spring-ai-backend/` 下）：
+
+```bash
+cp .env.example .env
+```
+
+2. 启动后端依赖数据库（在 `spring-ai-backend/` 下）：
 
 ```bash
 docker compose up -d
 ```
 
-2. 启动 Spring Boot 后端（在 `spring-ai-backend/` 下）：
+3. 启动 Spring Boot 后端（在 `spring-ai-backend/` 下）：
 
 ```bash
 mvn spring-boot:run
@@ -75,7 +81,7 @@ mvn spring-boot:run
 
 默认后端地址：`http://localhost:8999`
 
-3. 启动前端（项目根目录）：
+4. 启动前端（项目根目录）：
 
 ```bash
 npm install
@@ -92,23 +98,43 @@ docker compose up --build -d
 
 ## 环境配置
 
-### 前端
+### 前端（Vite 代理）
 
-通过 `VITE_AI_BACKEND_URL` 指定 AI 后端地址，默认值为 `http://localhost:8999`。
+- 前端接口统一使用相对路径 `'/api'`，常量定义在 `src/api/apiBase.ts`。
+- 开发环境代理定义在 `vite.config.ts`：
+  - `'/api' -> 'http://localhost:8999'`
+  - `'/ws' -> 'http://localhost:8999'`（`ws: true`）
+- 当前前端已不再使用 `VITE_AI_BACKEND_URL`。
+- 如果后端端口变更，请同步修改 `vite.config.ts` 中 `server.proxy` 的目标地址。
 
-示例（`.env.local`）：
+### 后端（Spring AI）
 
-```bash
-VITE_AI_BACKEND_URL=http://localhost:8999
-```
-
-### 后端
-
-后端环境变量示例见：
+后端环境变量模板：
 
 `spring-ai-backend/.env.example`
 
-至少需要配置可用的 OpenAI 兼容服务（如 `OPENAI_API_KEY`，或按 chat/speech/realtime 分别配置）。
+最小可用配置（`.env`）：
+
+```bash
+OPENAI_API_KEY=your_api_key_here
+MYSQL_DATASOURCE_URL=jdbc:mysql://localhost:3306/resume-builder?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
+MYSQL_DATASOURCE_USERNAME=root
+MYSQL_DATASOURCE_PASSWORD=root
+PGVECTOR_DATASOURCE_URL=jdbc:postgresql://127.0.0.1:5432/resume_builder_vector
+PGVECTOR_DATASOURCE_USERNAME=postgres
+PGVECTOR_DATASOURCE_PASSWORD=postgres
+SERVER_PORT=8999
+APP_CORS_ALLOWED_ORIGINS=http://localhost:5173
+```
+
+可选分路配置（不同模型/供应商）：
+
+- Chat：`OPENAI_CHAT_BASE_URL`、`OPENAI_CHAT_API_KEY`、`OPENAI_CHAT_MODEL`
+- Speech：`OPENAI_SPEECH_BASE_URL`、`OPENAI_SPEECH_API_KEY`
+- Realtime：`OPENAI_REALTIME_BASE_URL`、`OPENAI_REALTIME_API_KEY`
+- Embedding：`OPENAI_EMBEDDING_BASE_URL`、`OPENAI_EMBEDDING_API_KEY`、`OPENAI_EMBEDDING_MODEL`
+
+`application.yml` 已通过 `spring.config.import=optional:file:.env[.properties]` 自动加载 `.env`，无需把密钥写入源码。
 
 ## 常用脚本
 
@@ -141,6 +167,7 @@ npm run format
 resume-builder/
   src/
     api/                         # 前端请求封装（chat/interview/speech/realtime）
+      apiBase.ts                 # API 基础路径常量（/api）
     components/
       ai/                        # AI 配置、AI 优化、AI 面试界面
       common/                    # 通用组件（侧边栏、富文本等）

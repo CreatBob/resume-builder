@@ -1,4 +1,5 @@
-import { buildAiBackendUrl } from '@/config/apiConfig'
+// author: jf
+import { API_BASE_PATH } from './apiBase'
 
 export interface ChatRequestPayload {
   message: string
@@ -10,11 +11,11 @@ export interface ChatResponsePayload {
 }
 
 export function getAiChatEndpoint(): string {
-  return buildAiBackendUrl('/api/ai/chat')
+  return `${API_BASE_PATH}/ai/chat`
 }
 
 export function getAiChatStreamEndpoint(): string {
-  return buildAiBackendUrl('/api/ai/chat/stream')
+  return `${API_BASE_PATH}/ai/chat/stream`
 }
 
 export async function postAiChat(

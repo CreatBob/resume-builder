@@ -26,10 +26,9 @@ import reactor.core.Disposable;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Sinks;
 
+// author: jf
 @Service
 public class InterviewTurnService {
-
-    private static final Pattern PARTIAL_ASSISTANT_REPLY = Pattern.compile("\\\"assistantReply\\\"\\s*:\\s*\\\"((?:\\\\.|[^\\\"])*)");
 
     private static final String CANDIDATE_SYSTEM_PROMPT = """
             你是一名专业、严格、但表达友善的技术面试官。
@@ -357,11 +356,42 @@ public class InterviewTurnService {
     }
 
     private String extractAssistantReplyFromPartialJson(String raw) {
-        Matcher matcher = PARTIAL_ASSISTANT_REPLY.matcher(safeText(raw));
-        if (!matcher.find()) {
+        String text = safeText(raw);
+        int keyIndex = text.indexOf("\"assistantReply\"");
+        if (keyIndex < 0) {
             return null;
         }
-        return decodePartialJsonString(matcher.group(1));
+
+        int colonIndex = text.indexOf(':', keyIndex + "\"assistantReply\"".length());
+        if (colonIndex < 0) {
+            return null;
+        }
+
+        int start = skipWhitespace(text, colonIndex + 1);
+        if (start < 0 || start >= text.length() || text.charAt(start) != '"') {
+            return null;
+        }
+
+        StringBuilder encoded = new StringBuilder();
+        boolean escaped = false;
+        for (int i = start + 1; i < text.length(); i++) {
+            char ch = text.charAt(i);
+            if (!escaped && ch == '"') {
+                break;
+            }
+            encoded.append(ch);
+            escaped = !escaped && ch == '\\';
+        }
+        return decodePartialJsonString(encoded.toString());
+    }
+
+    private int skipWhitespace(String text, int fromIndex) {
+        for (int i = Math.max(0, fromIndex); i < text.length(); i++) {
+            if (!Character.isWhitespace(text.charAt(i))) {
+                return i;
+            }
+        }
+        return -1;
     }
 
     private String decodePartialJsonString(String raw) {

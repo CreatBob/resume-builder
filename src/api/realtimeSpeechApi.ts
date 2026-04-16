@@ -1,4 +1,5 @@
-import { buildAiBackendUrl } from '@/config/apiConfig'
+// author: jf
+import { API_BASE_PATH } from './apiBase'
 
 export interface RealtimeClientSecretRequest {
   model?: string
@@ -14,7 +15,7 @@ export interface RealtimeClientSecretResponse {
 }
 
 export function getRealtimeClientSecretEndpoint(): string {
-  return buildAiBackendUrl('/api/ai/realtime/client-secret')
+  return `${API_BASE_PATH}/ai/realtime/client-secret`
 }
 
 export async function postRealtimeClientSecret(

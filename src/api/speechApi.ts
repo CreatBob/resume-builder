@@ -1,4 +1,5 @@
-import { buildAiBackendUrl } from '@/config/apiConfig'
+// author: jf
+import { API_BASE_PATH } from './apiBase'
 
 export interface AudioTranscriptionRequest {
   blob: Blob
@@ -9,7 +10,7 @@ export interface AudioTranscriptionRequest {
 }
 
 export function getAudioTranscriptionEndpoint(): string {
-  return buildAiBackendUrl('/api/ai/audio/transcriptions')
+  return `${API_BASE_PATH}/ai/audio/transcriptions`
 }
 
 export async function postAudioTranscription(

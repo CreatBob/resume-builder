@@ -1,173 +1,71 @@
+<!-- author: jf -->
 # spring-ai-backend
 
-Spring Boot backend for AI chat and RAG with Spring AI.
+Spring Boot 3 + Spring AI 后端服务，提供聊天、流式输出、语音转写、Realtime 临时密钥、面试会话与 RAG 能力。
 
-## Stack
+## 技术栈
 
 - Java 21
-- Spring Boot 3 (MVC)
-- Spring AI (OpenAI model + pgvector vector store)
-- MySQL (business relational data)
-- PostgreSQL + pgvector (vector retrieval)
+- Spring Boot 3
+- Spring AI
+- MyBatis-Plus
+- MySQL（业务与面试会话）
+- PostgreSQL + pgvector（向量检索）
 
-## Project Structure
+## 快速开始
 
-```text
-spring-ai-backend/
-  src/main/java/com/resumebuilder/springaibackend/
-    config/
-    controller/
-    dto/
-    service/
-  src/main/resources/application.yml
-  docker-compose.yml
-  .env.example
-```
-
-## 1) Start databases (MySQL + pgvector)
+在 `spring-ai-backend/` 目录执行：
 
 ```bash
+# 1) 复制环境变量模板
+cp .env.example .env
+
+# 2) 启动依赖数据库（MySQL + pgvector）
 docker compose up -d
-```
 
-Run this command under `spring-ai-backend/` directory.
-
-## 2) Configure env
-
-Copy `.env.example` to your local env mechanism.
-
-Required minimum env:
-
-```bash
-OPENAI_API_KEY=your_api_key_here
-```
-
-Defaults already set:
-
-- MySQL database: `resume-builder`
-- Default chat model: `gpt-5.4`
-
-If you use OpenAI-compatible providers, set:
-
-```bash
-OPENAI_BASE_URL=https://your-provider-base-url
-OPENAI_CHAT_MODEL=your-chat-model
-OPENAI_EMBEDDING_MODEL=your-embedding-model
-```
-
-## 3) Run backend
-
-```bash
+# 3) 启动后端
 mvn spring-boot:run
 ```
 
-Default base URL: `http://localhost:8080`
+默认地址：`http://localhost:8999`
 
-## APIs
+健康检查：`GET http://localhost:8999/actuator/health`
 
-### POST `/api/ai/chat`
+## 配置说明
 
-Request:
-
-```json
-{
-  "message": "鐢喗鍨滄导妯哄鏉╂瑦顔岀粻鈧崢鍡樺伎鏉?
-}
-```
-
-Response:
-
-```json
-{
-  "answer": "..."
-}
-```
-
-### POST `/api/ai/chat/stream`
-
-Request body is same as `/chat`.
-
-Response type: `text/event-stream`
-
-### POST `/api/ai/rag/documents`
-
-Request:
-
-```json
-{
-  "documents": [
-    {
-      "sourceId": "resume-guideline-1",
-      "content": "STAR 濞夋洖鍨楦跨殶閸︾儤娅欓妴浣锋崲閸斅扳偓浣筋攽閸斻劊鈧胶绮ㄩ弸?,
-      "metadata": {
-        "category": "guideline"
-      }
-    }
-  ]
-}
-```
-
-Response:
-
-```json
-{
-  "inserted": 1
-}
-```
-
-### POST `/api/ai/rag/query`
-
-Request:
-
-```json
-{
-  "query": "妞ゅ湱娲扮紒蹇撳坊閹簼绠為崘娆愭纯閺堝鍣洪崠鏍波閺?,
-  "topK": 5
-}
-```
-
-Response:
-
-```json
-{
-  "answer": "...",
-  "sources": [
-    {
-      "sourceId": "resume-guideline-1",
-      "content": "...",
-      "metadata": {
-        "category": "guideline"
-      }
-    }
-  ]
-}
-```
-
-## Frontend Integration Suggestion
-
-- Frontend only calls backend APIs.
-- Keep provider key and model routing only in backend.
-- For your current Vue app, replace direct `fetch /v1/chat/completions` with calls to `http://localhost:8080/api/ai/*`.
-
-### Separate Chat / Embedding Providers
-
-You can configure Chat and Embedding to use different OpenAI-compatible endpoints:
+### 1) 必填最小配置（`.env`）
 
 ```bash
-OPENAI_CHAT_BASE_URL=http://localhost:8317
-OPENAI_CHAT_API_KEY=xxx
-OPENAI_CHAT_COMPLETIONS_PATH=/v1/chat/completions
-
-OPENAI_EMBEDDING_BASE_URL=https://api.openai.com
-OPENAI_EMBEDDING_API_KEY=xxx
-OPENAI_EMBEDDINGS_PATH=/v1/embeddings
-OPENAI_EMBEDDING_MODEL=text-embedding-3-small
+OPENAI_API_KEY=your_api_key_here
+MYSQL_DATASOURCE_URL=jdbc:mysql://localhost:3306/resume-builder?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
+MYSQL_DATASOURCE_USERNAME=root
+MYSQL_DATASOURCE_PASSWORD=root
+SERVER_PORT=8999
+APP_CORS_ALLOWED_ORIGINS=http://localhost:5173
 ```
 
-Important: if you keep the default path settings (`/v1/chat/completions`, `/v1/embeddings`), do not append `/v1` in `*_BASE_URL`.
-### Local Env Loading
+### 2) pgvector 配置（用于 RAG）
 
-`application.yml` imports `spring-ai-backend/.env` via:
+如果使用仓库内 `docker-compose.yml`，请把 `.env` 中 pgvector 相关配置改为：
+
+```bash
+PGVECTOR_DATASOURCE_URL=jdbc:postgresql://127.0.0.1:5432/resume_builder_vector
+PGVECTOR_DATASOURCE_USERNAME=postgres
+PGVECTOR_DATASOURCE_PASSWORD=postgres
+```
+
+### 3) 可选分路配置（不同供应商/模型）
+
+- Chat：`OPENAI_CHAT_BASE_URL`、`OPENAI_CHAT_API_KEY`、`OPENAI_CHAT_MODEL`
+- Speech：`OPENAI_SPEECH_BASE_URL`、`OPENAI_SPEECH_API_KEY`、`OPENAI_SPEECH_TRANSCRIPTION_MODEL`
+- Realtime：`OPENAI_REALTIME_BASE_URL`、`OPENAI_REALTIME_API_KEY`、`OPENAI_REALTIME_TRANSCRIPTION_MODEL`
+- Embedding：`OPENAI_EMBEDDING_BASE_URL`、`OPENAI_EMBEDDING_API_KEY`、`OPENAI_EMBEDDING_MODEL`
+
+说明：若保留默认路径（如 `/v1/chat/completions`、`/v1/embeddings`），`*_BASE_URL` 不要再追加 `/v1`。
+
+### 4) `.env` 加载机制
+
+`application.yml` 通过以下配置自动加载同目录 `.env`：
 
 ```yaml
 spring:
@@ -175,4 +73,31 @@ spring:
     import: optional:file:.env[.properties]
 ```
 
-So you can keep secrets in `.env` and avoid hardcoding keys in YAML.
+## 与前端联调
+
+前端（根目录 `vite.config.ts`）已配置代理：
+
+- `'/api' -> 'http://localhost:8999'`
+- `'/ws' -> 'http://localhost:8999'`（WebSocket）
+
+前端请求使用相对路径 `'/api'`，无需在前端暴露后端密钥或供应商地址。
+
+## API 摘要
+
+基础路径：`/api/ai`
+
+- `POST /chat`：普通问答
+- `POST /chat/stream`：流式问答（SSE）
+- `POST /audio/transcriptions`：音频转写
+- `POST /realtime/client-secret`：Realtime 临时密钥
+- `POST /interview/turn/stream`：面试回合流式输出（NDJSON）
+- `GET /interview/sessions?limit=20`：面试会话列表
+- `GET /interview/sessions/{sessionId}`：面试会话详情
+- `POST /rag/documents`：RAG 文档入库
+- `POST /rag/query`：RAG 检索问答
+
+## 常见问题
+
+- 启动后报数据库连接失败：优先检查 `.env` 与 `docker-compose.yml` 的端口、库名、账号是否一致。
+- CORS 问题：确认 `APP_CORS_ALLOWED_ORIGINS` 包含前端地址（默认 `http://localhost:5173`）。
+- 上游 401/403：确认 `OPENAI_*_API_KEY` 已正确配置且对应供应商可用。

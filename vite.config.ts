@@ -1,26 +1,28 @@
 import { fileURLToPath, URL } from 'node:url'
 
-import { defineConfig, loadEnv } from 'vite'
+import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import vueDevTools from 'vite-plugin-vue-devtools'
 
+// author: jf
 // https://vite.dev/config/
-export default defineConfig(({ mode }) => {
-  const env = loadEnv(mode, process.cwd(), '')
-  const aiBackendBaseUrl = (env.VITE_AI_BACKEND_URL || 'http://localhost:8999').replace(/\/+$/, '')
-
-  return {
-    plugins: [
-      vue(),
-      vueDevTools(),
-    ],
-    resolve: {
-      alias: {
-        '@': fileURLToPath(new URL('./src', import.meta.url))
+export default defineConfig({
+  plugins: [
+    vue(),
+    vueDevTools(),
+  ],
+  resolve: {
+    alias: {
+      '@': fileURLToPath(new URL('./src', import.meta.url))
+    },
+  },
+  server: {
+    proxy: {
+      '/api': 'http://localhost:8999',
+      '/ws': {
+        target: 'http://localhost:8999',
+        ws: true,
       },
     },
-    define: {
-      __AI_BACKEND_BASE_URL__: JSON.stringify(aiBackendBaseUrl),
-    },
-  }
+  },
 })

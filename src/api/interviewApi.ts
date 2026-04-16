@@ -1,17 +1,18 @@
-import { buildAiBackendUrl } from '@/config/apiConfig'
+// author: jf
+import { API_BASE_PATH } from './apiBase'
 import type { InterviewTurnRequest } from '@/services/interview/types'
 
 export function getInterviewTurnStreamEndpoint(): string {
-  return buildAiBackendUrl('/api/ai/interview/turn/stream')
+  return `${API_BASE_PATH}/ai/interview/turn/stream`
 }
 
 export function getInterviewSessionsEndpoint(limit?: number): string {
   const query = typeof limit === 'number' && Number.isFinite(limit) ? `?limit=${Math.max(1, Math.floor(limit))}` : ''
-  return buildAiBackendUrl(`/api/ai/interview/sessions${query}`)
+  return `${API_BASE_PATH}/ai/interview/sessions${query}`
 }
 
 export function getInterviewSessionDetailEndpoint(sessionId: string): string {
-  return buildAiBackendUrl(`/api/ai/interview/sessions/${encodeURIComponent(sessionId)}`)
+  return `${API_BASE_PATH}/ai/interview/sessions/${encodeURIComponent(sessionId)}`
 }
 
 export async function postInterviewTurnStream(
