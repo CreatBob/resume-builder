@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, watch, onMounted, nextTick } from 'vue'
+// author: jf
 
 const props = defineProps<{
   modelValue: string
@@ -46,7 +47,9 @@ function execCmd(cmd: string, value?: string) {
 }
 
 function setFontSize(e: Event) {
-  const size = (e.target as HTMLSelectElement).value
+  const target = e.target as HTMLSelectElement
+  const size = target.value
+  if (!size) return
   // execCommand fontSize uses 1-7 scale; we use a span approach instead
   document.execCommand('fontSize', false, '7')
   const fontEls = editorRef.value?.querySelectorAll('font[size="7"]')
@@ -60,6 +63,8 @@ function setFontSize(e: Event) {
   applyFontSizeToSelectedListItems(size)
   editorRef.value?.focus()
   onInput()
+  // Reset select so re-selecting the same size still triggers change next time.
+  target.value = ''
 }
 
 function applyFontSizeToSelectedListItems(size: string) {
