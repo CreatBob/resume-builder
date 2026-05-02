@@ -17,11 +17,23 @@ export interface BasicInfo {
   currentStatus: string
   expectedLocation: string
   expectedSalary: string
-  website: string
+  website: BasicLink
   wechat: string
   currentCity: string
-  github: string
-  blog: string
+  github: BasicLink
+  blog: BasicLink
+  customItems: CustomBasicInfoItem[]
+}
+
+export interface BasicLink {
+  text: string
+  url: string
+}
+
+export interface CustomBasicInfoItem {
+  id: string
+  label: string
+  value: string
 }
 
 export interface EducationEntry {
@@ -90,6 +102,48 @@ function genId(): string {
   return `item_${Date.now()}_${++_idCounter}`
 }
 
+function createEmptyBasicLink(): BasicLink {
+  return {
+    text: '',
+    url: '',
+  }
+}
+
+function normalizeBasicLink(value: unknown): BasicLink {
+  if (typeof value === 'string') {
+    return {
+      text: value,
+      url: value,
+    }
+  }
+
+  if (value && typeof value === 'object') {
+    const link = value as Partial<BasicLink>
+    return {
+      text: typeof link.text === 'string' ? link.text : '',
+      url: typeof link.url === 'string' ? link.url : '',
+    }
+  }
+
+  return createEmptyBasicLink()
+}
+
+function normalizeCustomBasicItems(value: unknown): CustomBasicInfoItem[] {
+  if (!Array.isArray(value)) return []
+
+  return value
+    .map((item) => {
+      if (!item || typeof item !== 'object') return null
+      const current = item as Partial<CustomBasicInfoItem>
+      return {
+        id: typeof current.id === 'string' && current.id ? current.id : genId(),
+        label: typeof current.label === 'string' ? current.label : '',
+        value: typeof current.value === 'string' ? current.value : '',
+      }
+    })
+    .filter((item): item is CustomBasicInfoItem => Boolean(item))
+}
+
 export const useResumeStore = defineStore('resume', () => {
   const modules = reactive<ModuleConfig[]>([
     { key: 'basicInfo', label: '基本信息', icon: '👤', visible: true },
@@ -115,11 +169,12 @@ export const useResumeStore = defineStore('resume', () => {
     currentStatus: '',
     expectedLocation: '',
     expectedSalary: '',
-    website: '',
+    website: createEmptyBasicLink(),
     wechat: '',
     currentCity: '',
-    github: '',
-    blog: '',
+    github: createEmptyBasicLink(),
+    blog: createEmptyBasicLink(),
+    customItems: [],
   })
 
   const educationList = reactive<EducationEntry[]>([
@@ -336,6 +391,19 @@ export const useResumeStore = defineStore('resume', () => {
     if (idx > -1) awardList.splice(idx, 1)
   }
 
+  function addCustomBasicInfoItem() {
+    basicInfo.customItems.push({
+      id: genId(),
+      label: '',
+      value: '',
+    })
+  }
+
+  function removeCustomBasicInfoItem(id: string) {
+    const idx = basicInfo.customItems.findIndex((item) => item.id === id)
+    if (idx > -1) basicInfo.customItems.splice(idx, 1)
+  }
+
   const STORAGE_KEY = 'resume-builder-data'
   const AUTO_SAVE_DELAY_MS = 500
   const SAVE_LOADING_MIN_MS = 900
@@ -430,7 +498,15 @@ export const useResumeStore = defineStore('resume', () => {
         modules.splice(0, modules.length, ...nextModules)
       }
       selectedTemplateKey.value = normalizeResumeTemplateKey(data.selectedTemplateKey ?? data.selectedTemplateId)
-      if (data.basicInfo) Object.assign(basicInfo, data.basicInfo)
+      if (data.basicInfo) {
+        const incomingBasicInfo = data.basicInfo as Partial<BasicInfo> & Record<string, unknown>
+        Object.assign(basicInfo, incomingBasicInfo, {
+          website: normalizeBasicLink(incomingBasicInfo.website),
+          github: normalizeBasicLink(incomingBasicInfo.github),
+          blog: normalizeBasicLink(incomingBasicInfo.blog),
+          customItems: normalizeCustomBasicItems(incomingBasicInfo.customItems),
+        })
+      }
       if (data.educationList) {
         educationList.splice(0, educationList.length, ...data.educationList)
       }
@@ -504,6 +580,8 @@ export const useResumeStore = defineStore('resume', () => {
     moveProject,
     addAward,
     removeAward,
+    addCustomBasicInfoItem,
+    removeCustomBasicInfoItem,
     exportResumeData,
     importResumeData,
     saveToStorage,

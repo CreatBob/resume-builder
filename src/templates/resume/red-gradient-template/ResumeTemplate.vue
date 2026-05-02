@@ -1,10 +1,10 @@
-<!-- author: jf -->
+﻿<!-- author: jf -->
 <script setup lang="ts">
 import { computed } from 'vue'
 import { toHref } from '../../shared/metaIcons'
 import { useResumeTemplateData } from '../../shared/useResumeTemplateData'
 
-const { store, hasAnyContent, simpleContactMeta, moduleOrderStyle } = useResumeTemplateData()
+const { store, hasAnyContent, simpleContactMeta, profileLinks, customBasicMeta, moduleOrderStyle } = useResumeTemplateData()
 
 const moduleLabelMap = computed(() =>
   store.modules.reduce<Record<string, string>>((acc, module) => {
@@ -52,18 +52,6 @@ const intentionFacts = computed(() => {
   return items.filter((item) => item.value)
 })
 
-const profileLinks = computed(() =>
-  [
-    { key: 'website', label: '个人网站', value: store.basicInfo.website.trim() },
-    { key: 'github', label: 'GitHub', value: store.basicInfo.github.trim() },
-    { key: 'blog', label: '博客', value: store.basicInfo.blog.trim() },
-  ]
-    .filter((item) => item.value)
-    .map((item) => ({
-      ...item,
-      href: toHref(item.value),
-    }))
-)
 
 function sectionTitle(key: string): string {
   return moduleLabelMap.value[key] ?? ''
@@ -105,6 +93,10 @@ function projectHref(link: string): string {
             <span v-for="item in intentionFacts" :key="item.label" class="fact-chip">{{ item.label }}：{{ item.value }}</span>
           </div>
 
+          <div v-if="customBasicMeta.length" class="fact-row fact-row-soft">
+            <span v-for="item in customBasicMeta" :key="item.key" class="fact-chip">{{ item.text }}</span>
+          </div>
+
           <div v-if="profileLinks.length" class="link-row">
             <a
               v-for="item in profileLinks"
@@ -114,7 +106,7 @@ function projectHref(link: string): string {
               target="_blank"
               rel="noopener noreferrer"
             >
-              {{ item.label }}：{{ item.value }}
+              {{ item.label }}：{{ item.text }}
             </a>
           </div>
         </div>

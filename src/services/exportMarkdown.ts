@@ -1,6 +1,14 @@
+﻿// author: jf
 import type { useResumeStore } from '@/stores/resume'
 
 type ResumeStore = ReturnType<typeof useResumeStore>
+
+function formatBasicMarkdownLink(label: string, link: { text: string; url: string }): string {
+  const text = link.text.trim()
+  if (!text) return ''
+  const url = link.url.trim()
+  return url ? `**${label}**：[${text}](${url})` : `**${label}**：${text}`
+}
 
 /**
  * Convert simple HTML (from RichEditor) to Markdown.
@@ -120,9 +128,17 @@ export function generateResumeMarkdown(store: ResumeStore): string {
         if (b.expectedSalary) infoItems.push(`**期望薪资**：${b.expectedSalary}`)
         if (b.currentStatus) infoItems.push(`**当前状态**：${b.currentStatus}`)
         if (b.wechat) infoItems.push(`**微信**：${b.wechat}`)
-        if (b.website) infoItems.push(`**个人网站**：${b.website}`)
-        if (b.github) infoItems.push(`**GitHub**：${b.github}`)
-        if (b.blog) infoItems.push(`**博客**：${b.blog}`)
+        ;[
+          formatBasicMarkdownLink('个人网站', b.website),
+          formatBasicMarkdownLink('GitHub', b.github),
+          formatBasicMarkdownLink('博客', b.blog),
+          ...b.customItems
+            .map((item) => {
+              const text = [item.label.trim(), item.value.trim()].filter(Boolean).join('：')
+              return text ? `**更多信息**：${text}` : ''
+            })
+            .filter(Boolean),
+        ].forEach((item) => infoItems.push(item))
 
         if (infoItems.length > 0) {
           lines.push(infoItems.map((item) => `- ${item}`).join('\n'), '')

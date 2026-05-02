@@ -26,6 +26,14 @@ const A4_RATIO = 297 / 210
 const A4_HEIGHT = Math.round(A4_WIDTH * A4_RATIO)
 const pageBreaks = ref<number[]>([])
 
+interface PdfLinkRect {
+  href: string
+  x: number
+  y: number
+  width: number
+  height: number
+}
+
 const fallbackTemplate: ResumeTemplateDefinition = getResumeTemplateByKey('default')
 const currentTemplate = computed<ResumeTemplateDefinition>(
   () => getResumeTemplateByKey(store.selectedTemplateKey) ?? fallbackTemplate
@@ -82,6 +90,48 @@ function findEffectiveCanvasHeight(canvas: HTMLCanvasElement): number {
   }
 
   return Math.min(canvas.height, roughY + 4)
+}
+
+function collectPdfLinkRects(exportNode: HTMLElement): PdfLinkRect[] {
+  const rootRect = exportNode.getBoundingClientRect()
+  return Array.from(exportNode.querySelectorAll<HTMLAnchorElement>('a[href]')).flatMap((anchor) => {
+    const href = anchor.href || anchor.getAttribute('href')?.trim() || ''
+    if (!href) return []
+
+    return Array.from(anchor.getClientRects())
+      .filter((rect) => rect.width > 0 && rect.height > 0)
+      .map((rect) => ({
+        href,
+        x: rect.left - rootRect.left,
+        y: rect.top - rootRect.top,
+        width: rect.width,
+        height: rect.height,
+      }))
+  })
+}
+
+function addPdfLinksForPage(
+  pdf: InstanceType<typeof import('jspdf').jsPDF>,
+  links: PdfLinkRect[],
+  pageOffsetY: number,
+  pageSliceHeight: number,
+  exportScale: number
+) {
+  const pxToMm = 210 / A4_WIDTH
+  const pageStartY = pageOffsetY / exportScale
+  const pageEndY = (pageOffsetY + pageSliceHeight) / exportScale
+
+  links.forEach((link) => {
+    const linkStartY = link.y
+    const linkEndY = link.y + link.height
+    const overlapStartY = Math.max(linkStartY, pageStartY)
+    const overlapEndY = Math.min(linkEndY, pageEndY)
+    if (overlapEndY <= overlapStartY) return
+
+    pdf.link(link.x * pxToMm, (overlapStartY - pageStartY) * pxToMm, link.width * pxToMm, (overlapEndY - overlapStartY) * pxToMm, {
+      url: link.href,
+    })
+  })
 }
 
 function updatePageBreaks() {
@@ -211,6 +261,7 @@ async function exportPDF(mode: ExportQualityMode) {
   try {
     await setExportProgress(8, '准备导出资源...')
     await document.fonts?.ready
+    const pdfLinks = collectPdfLinkRects(exportNode)
     await setExportProgress(18, '加载导出引擎...')
     const [{ default: html2canvas }, { jsPDF }] = await Promise.all([import('html2canvas'), import('jspdf')])
     await setExportProgress(36, '正在渲染简历画布...')
@@ -261,6 +312,7 @@ async function exportPDF(mode: ExportQualityMode) {
 
       if (pageIndex > 0) pdf.addPage('a4', 'portrait')
       pdf.addImage(imgData, isHdMode ? 'PNG' : 'JPEG', 0, 0, imgWidthMm, imgHeightMm, undefined, isHdMode ? 'NONE' : 'FAST')
+      addPdfLinksForPage(pdf, pdfLinks, offsetY, sliceHeight, exportScale)
       const pageProgress = 68 + Math.round((Math.min(pageIndex + 1, totalPages) / totalPages) * 28)
       await setExportProgress(pageProgress, `正在写入第 ${Math.min(pageIndex + 1, totalPages)}/${totalPages} 页...`)
 

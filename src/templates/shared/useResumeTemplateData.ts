@@ -9,7 +9,21 @@ export function useResumeTemplateData() {
 
   const hasBasicInfo = computed(() => {
     const b = store.basicInfo
-    return Boolean(b.name || b.phone || b.email || b.jobTitle || b.wechat || b.currentCity || b.website || b.github || b.blog)
+    return Boolean(
+      b.name ||
+        b.phone ||
+        b.email ||
+        b.jobTitle ||
+        b.wechat ||
+        b.currentCity ||
+        b.website.text ||
+        b.website.url ||
+        b.github.text ||
+        b.github.url ||
+        b.blog.text ||
+        b.blog.url ||
+        b.customItems.some((item) => item.label.trim() || item.value.trim())
+    )
   })
 
   const hasAnyContent = computed(
@@ -48,18 +62,66 @@ export function useResumeTemplateData() {
     const items = [
       { key: 'wechat', icon: 'wechat' as MetaIconKey, text: store.basicInfo.wechat || '', isLink: false },
       { key: 'currentCity', icon: 'currentCity' as MetaIconKey, text: store.basicInfo.currentCity || '', isLink: false },
-      { key: 'website', icon: 'website' as MetaIconKey, text: store.basicInfo.website || '', isLink: true },
-      { key: 'github', icon: 'github' as MetaIconKey, text: store.basicInfo.github || '', isLink: true },
-      { key: 'blog', icon: 'blog' as MetaIconKey, text: store.basicInfo.blog || '', isLink: true },
+      {
+        key: 'website',
+        icon: 'website' as MetaIconKey,
+        text: store.basicInfo.website.text || '',
+        url: store.basicInfo.website.url || '',
+        isLink: Boolean(store.basicInfo.website.url),
+      },
+      {
+        key: 'github',
+        icon: 'github' as MetaIconKey,
+        text: store.basicInfo.github.text || '',
+        url: store.basicInfo.github.url || '',
+        isLink: Boolean(store.basicInfo.github.url),
+      },
+      {
+        key: 'blog',
+        icon: 'blog' as MetaIconKey,
+        text: store.basicInfo.blog.text || '',
+        url: store.basicInfo.blog.url || '',
+        isLink: Boolean(store.basicInfo.blog.url),
+      },
+      ...store.basicInfo.customItems.map((item) => ({
+        key: item.id,
+        icon: 'status' as MetaIconKey,
+        text: [item.label.trim(), item.value.trim()].filter(Boolean).join(': '),
+        isLink: false,
+      })),
     ]
 
     return items
       .filter((item) => item.text.trim())
       .map((item) => ({
         ...item,
-        href: item.isLink ? toHref(item.text) : '',
+        href: item.isLink && 'url' in item && typeof item.url === 'string' ? toHref(item.url) : '',
       }))
   })
+
+  const profileLinks = computed(() =>
+    [
+      { key: 'website', label: '个人网站', text: store.basicInfo.website.text.trim(), url: store.basicInfo.website.url.trim() },
+      { key: 'github', label: 'GitHub', text: store.basicInfo.github.text.trim(), url: store.basicInfo.github.url.trim() },
+      { key: 'blog', label: '博客', text: store.basicInfo.blog.text.trim(), url: store.basicInfo.blog.url.trim() },
+    ]
+      .filter((item) => item.text && item.url)
+      .map((item) => ({
+        ...item,
+        href: item.url ? toHref(item.url) : '',
+      }))
+  )
+
+  const customBasicMeta = computed(() =>
+    store.basicInfo.customItems
+      .map((item) => ({
+        key: item.id,
+        label: item.label.trim(),
+        value: item.value.trim(),
+        text: [item.label.trim(), item.value.trim()].filter(Boolean).join(': '),
+      }))
+      .filter((item) => item.text)
+  )
 
   const moduleOrderMap = computed(() => {
     const map: Record<string, number> = {}
@@ -83,6 +145,8 @@ export function useResumeTemplateData() {
     lineTwoMeta,
     simpleContactMeta,
     lineThreeMeta,
+    profileLinks,
+    customBasicMeta,
     moduleOrderStyle,
   }
 }

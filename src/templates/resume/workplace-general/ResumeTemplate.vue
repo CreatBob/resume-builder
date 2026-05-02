@@ -1,9 +1,9 @@
-﻿<script setup lang="ts">
+﻿<!-- author: jf -->
+<script setup lang="ts">
 import { computed } from 'vue'
-import { toHref } from '../../shared/metaIcons'
 import { useResumeTemplateData } from '../../shared/useResumeTemplateData'
 
-const { store, hasAnyContent, simpleContactMeta, moduleOrderStyle } = useResumeTemplateData()
+const { store, hasAnyContent, simpleContactMeta, profileLinks, customBasicMeta, moduleOrderStyle } = useResumeTemplateData()
 
 const displayName = computed(() => store.basicInfo.name || '通用职场简历')
 
@@ -33,19 +33,7 @@ const baseMetaLineThree = computed(() =>
     .join(' | ')
 )
 
-const extraLinks = computed(() => {
-  return [
-    { key: 'website', text: store.basicInfo.website.trim() },
-    { key: 'github', text: store.basicInfo.github.trim() },
-    { key: 'blog', text: store.basicInfo.blog.trim() },
-  ]
-    .filter((item) => item.text)
-    .map((item, index) => ({
-      key: `${item.key}-${index}`,
-      text: item.text,
-      href: toHref(item.text),
-    }))
-})
+const customMetaLine = computed(() => customBasicMeta.value.map((item) => item.text).join(' | '))
 
 function subLine(values: Array<string | undefined>): string {
   return values
@@ -70,8 +58,9 @@ function subLine(values: Array<string | undefined>): string {
       <p v-if="baseMetaLineOne" class="meta-line">{{ baseMetaLineOne }}</p>
       <p v-if="baseMetaLineTwo" class="meta-line">{{ baseMetaLineTwo }}</p>
       <p v-if="baseMetaLineThree" class="meta-line">{{ baseMetaLineThree }}</p>
-      <div v-if="extraLinks.length" class="extra-links">
-        <a v-for="item in extraLinks" :key="item.key" :href="item.href" target="_blank" rel="noopener noreferrer">{{ item.text }}</a>
+      <p v-if="customMetaLine" class="meta-line">{{ customMetaLine }}</p>
+      <div v-if="profileLinks.length" class="extra-links">
+        <a v-for="item in profileLinks" :key="item.key" :href="item.href" target="_blank" rel="noopener noreferrer">{{ item.text }}</a>
       </div>
     </header>
 

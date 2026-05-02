@@ -1,17 +1,23 @@
-﻿<script setup lang="ts">
+﻿<!-- author: jf -->
+<script setup lang="ts">
 import { useResumeStore } from '@/stores/resume'
 import { ref, reactive } from 'vue'
 
 const store = useResumeStore()
 const collapsed = ref(false)
 
+function hasLinkValue(key: 'github' | 'website' | 'blog'): boolean {
+  const link = store.basicInfo[key]
+  return Boolean(link.text || link.url)
+}
+
 // Extra optional fields visibility
 const extraFields = reactive<Record<string, boolean>>({
   wechat: Boolean(store.basicInfo.wechat),
   currentCity: Boolean(store.basicInfo.currentCity),
-  github: Boolean(store.basicInfo.github),
-  website: Boolean(store.basicInfo.website),
-  blog: Boolean(store.basicInfo.blog),
+  github: hasLinkValue('github'),
+  website: hasLinkValue('website'),
+  blog: hasLinkValue('blog'),
 })
 
 type ExtraFieldKey = 'wechat' | 'currentCity' | 'github' | 'website' | 'blog'
@@ -20,6 +26,11 @@ function toggleExtra(key: ExtraFieldKey) {
   const next = !extraFields[key]
   extraFields[key] = next
   if (!next) {
+    if (key === 'github' || key === 'website' || key === 'blog') {
+      store.basicInfo[key].text = ''
+      store.basicInfo[key].url = ''
+      return
+    }
     store.basicInfo[key] = ''
   }
 }
@@ -214,16 +225,46 @@ function removeAvatar() {
           <input v-model="store.basicInfo.currentCity" type="text" class="form-input" placeholder="请输入现居城市" />
         </div>
         <div class="form-group" v-if="extraFields.github">
-          <label class="form-label">GitHub</label>
-          <input v-model="store.basicInfo.github" type="text" class="form-input" placeholder="例如：github.com/username" />
+          <label class="form-label">GitHub显示文字</label>
+          <input v-model="store.basicInfo.github.text" type="text" class="form-input" placeholder="例如：我的 GitHub" />
         </div>
         <div class="form-group" v-if="extraFields.website">
-          <label class="form-label">个人网站</label>
-          <input v-model="store.basicInfo.website" type="text" class="form-input" placeholder="例如：example.com" />
+          <label class="form-label">个人网站显示文字</label>
+          <input v-model="store.basicInfo.website.text" type="text" class="form-input" placeholder="例如：个人主页" />
         </div>
         <div class="form-group" v-if="extraFields.blog">
-          <label class="form-label">博客</label>
-          <input v-model="store.basicInfo.blog" type="text" class="form-input" placeholder="例如：blog.example.com" />
+          <label class="form-label">博客显示文字</label>
+          <input v-model="store.basicInfo.blog.text" type="text" class="form-input" placeholder="例如：技术博客" />
+        </div>
+        <div class="form-group" v-if="extraFields.github">
+          <label class="form-label">GitHub链接地址</label>
+          <input v-model="store.basicInfo.github.url" type="text" class="form-input" placeholder="例如：https://github.com/username" />
+        </div>
+        <div class="form-group" v-if="extraFields.website">
+          <label class="form-label">个人网站链接地址</label>
+          <input v-model="store.basicInfo.website.url" type="text" class="form-input" placeholder="例如：https://example.com" />
+        </div>
+        <div class="form-group" v-if="extraFields.blog">
+          <label class="form-label">博客链接地址</label>
+          <input v-model="store.basicInfo.blog.url" type="text" class="form-input" placeholder="例如：https://blog.example.com" />
+        </div>
+      </div>
+
+      <div class="custom-info-header">
+        <div class="sub-section-title custom-info-title">自定义标签</div>
+        <button class="btn-add-custom" type="button" @click="store.addCustomBasicInfoItem">+ 添加标签</button>
+      </div>
+      <div v-if="store.basicInfo.customItems.length" class="custom-info-list">
+        <div v-for="item in store.basicInfo.customItems" :key="item.id" class="custom-info-row">
+          <div class="form-group">
+            <label class="form-label">标签名</label>
+            <input v-model="item.label" type="text" class="form-input" placeholder="例如：证书" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">内容</label>
+            <input v-model="item.value" type="text" class="form-input" placeholder="例如：软考高级" />
+          </div>
+          <button class="btn-remove-custom" type="button" title="删除标签" @click="store.removeCustomBasicInfoItem(item.id)">删除</button>
         </div>
       </div>
     </div>
@@ -455,5 +496,71 @@ function removeAvatar() {
 
 .extra-fields {
   margin-top: var(--spacing-sm);
+}
+
+.custom-info-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-md);
+  margin-top: var(--spacing-sm);
+}
+
+.custom-info-title {
+  margin-top: var(--spacing-md);
+  margin-bottom: var(--spacing-md);
+  flex: 1;
+}
+
+.btn-add-custom,
+.btn-remove-custom {
+  border: 1px solid var(--border-color);
+  background: white;
+  color: var(--text-secondary);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.btn-add-custom {
+  padding: var(--spacing-xs) var(--spacing-md);
+  font-size: 0.8rem;
+}
+
+.btn-remove-custom {
+  align-self: end;
+  min-height: 36px;
+  padding: 0 var(--spacing-md);
+  font-size: 0.78rem;
+}
+
+.btn-add-custom:hover,
+.btn-remove-custom:hover {
+  border-color: var(--primary-300);
+  color: var(--primary-600);
+  background: var(--primary-50);
+}
+
+.custom-info-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+.custom-info-row {
+  display: grid;
+  grid-template-columns: minmax(120px, 0.8fr) minmax(160px, 1.2fr) auto;
+  gap: var(--spacing-md);
+  align-items: end;
+}
+
+@media (max-width: 720px) {
+  .custom-info-row {
+    grid-template-columns: 1fr;
+  }
+
+  .btn-remove-custom {
+    justify-self: start;
+  }
 }
 </style>

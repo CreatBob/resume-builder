@@ -1,9 +1,9 @@
-﻿<script setup lang="ts">
+﻿<!-- author: jf -->
+<script setup lang="ts">
 import { computed } from 'vue'
-import { toHref } from '../../shared/metaIcons'
 import { useResumeTemplateData } from '../../shared/useResumeTemplateData'
 
-const { store, hasAnyContent, moduleOrderStyle } = useResumeTemplateData()
+const { store, hasAnyContent, profileLinks, customBasicMeta, moduleOrderStyle } = useResumeTemplateData()
 
 const contactItems = computed(() => {
   const items = [
@@ -39,23 +39,6 @@ const intentionItems = computed(() => {
   return items.filter((item) => item.value)
 })
 
-const linkItems = computed(() => {
-  const items = [
-    { label: '个人网站', value: store.basicInfo.website.trim() },
-    { label: 'GitHub', value: store.basicInfo.github.trim() },
-    { label: '博客', value: store.basicInfo.blog.trim() },
-  ]
-
-  return items
-    .filter((item) => item.value)
-    .map((item, idx) => ({
-      key: `${item.label}-${idx}`,
-      label: item.label,
-      text: item.value,
-      href: toHref(item.value),
-    }))
-})
-
 function subLine(values: Array<string | undefined>): string {
   return values
     .map((value) => value?.trim() ?? '')
@@ -86,14 +69,19 @@ function subLine(values: Array<string | undefined>): string {
         <p v-for="item in baseItems" :key="item.label"><span>{{ item.label }}</span>{{ item.value }}</p>
       </section>
 
+      <section class="side-block" v-if="customBasicMeta.length">
+        <h3>更多信息</h3>
+        <p v-for="item in customBasicMeta" :key="item.key"><span>{{ item.label }}</span>{{ item.value }}</p>
+      </section>
+
       <section class="side-block" v-if="intentionItems.length">
         <h3>求职意向</h3>
         <p v-for="item in intentionItems" :key="item.label"><span>{{ item.label }}</span>{{ item.value }}</p>
       </section>
 
-      <section class="side-block" v-if="linkItems.length">
+      <section class="side-block" v-if="profileLinks.length">
         <h3>个人链接</h3>
-        <a v-for="item in linkItems" :key="item.key" :href="item.href" target="_blank" rel="noopener noreferrer">
+        <a v-for="item in profileLinks" :key="item.key" :href="item.href" target="_blank" rel="noopener noreferrer">
           <span>{{ item.label }}</span>{{ item.text }}
         </a>
       </section>

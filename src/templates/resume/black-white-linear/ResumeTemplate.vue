@@ -1,9 +1,9 @@
-﻿<script setup lang="ts">
+﻿<!-- author: jf -->
+<script setup lang="ts">
 import { computed } from 'vue'
-import { toHref } from '../../shared/metaIcons'
 import { useResumeTemplateData } from '../../shared/useResumeTemplateData'
 
-const { store, hasAnyContent, moduleOrderStyle } = useResumeTemplateData()
+const { store, hasAnyContent, profileLinks, customBasicMeta, moduleOrderStyle } = useResumeTemplateData()
 
 const headerContact = computed(() => {
   const phone = store.basicInfo.phone.trim()
@@ -44,16 +44,7 @@ const baseMetaLineThree = computed(() => {
   return items.join(' | ')
 })
 
-const extraLinks = computed(() => {
-  const items = [store.basicInfo.website, store.basicInfo.github, store.basicInfo.blog]
-    .map((item) => item.trim())
-    .filter(Boolean)
-
-  return items.map((text) => ({
-    text,
-    href: toHref(text),
-  }))
-})
+const customMetaLine = computed(() => customBasicMeta.value.map((item) => item.text).join(' | '))
 </script>
 
 <template>
@@ -65,8 +56,9 @@ const extraLinks = computed(() => {
         <p v-if="baseMetaLineOne" class="header-meta">{{ baseMetaLineOne }}</p>
         <p v-if="baseMetaLineTwo" class="header-meta">{{ baseMetaLineTwo }}</p>
         <p v-if="baseMetaLineThree" class="header-meta">{{ baseMetaLineThree }}</p>
-        <div v-if="extraLinks.length" class="header-links">
-          <a v-for="item in extraLinks" :key="item.text" :href="item.href" target="_blank" rel="noopener noreferrer">{{ item.text }}</a>
+        <p v-if="customMetaLine" class="header-meta">{{ customMetaLine }}</p>
+        <div v-if="profileLinks.length" class="header-links">
+          <a v-for="item in profileLinks" :key="item.key" :href="item.href" target="_blank" rel="noopener noreferrer">{{ item.text }}</a>
         </div>
       </div>
 

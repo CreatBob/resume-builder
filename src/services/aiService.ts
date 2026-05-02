@@ -1,3 +1,4 @@
+﻿// author: jf
 import type {
   AwardEntry,
   BasicInfo,
@@ -6,6 +7,13 @@ import type {
   WorkEntry,
 } from '@/stores/resume'
 import { getModuleOutputRules, SYSTEM_PROMPT } from './prompts'
+
+function formatBasicLink(label: string, link: { text: string; url: string }): string {
+  const text = link.text.trim()
+  if (!text) return ''
+  const url = link.url.trim()
+  return url ? `${label}：${text}（${url}）` : `${label}：${text}`
+}
 
 function formatBasicInfo(info: BasicInfo): string {
   const lines: string[] = []
@@ -21,9 +29,14 @@ function formatBasicInfo(info: BasicInfo): string {
   if (info.location) lines.push(`所在地：${info.location}`)
   if (info.expectedLocation) lines.push(`期望工作地：${info.expectedLocation}`)
   if (info.expectedSalary) lines.push(`期望薪资：${info.expectedSalary}`)
-  if (info.website) lines.push(`个人网站：${info.website}`)
-  if (info.github) lines.push(`GitHub：${info.github}`)
-  if (info.blog) lines.push(`博客：${info.blog}`)
+  ;[
+    formatBasicLink('个人网站', info.website),
+    formatBasicLink('GitHub', info.github),
+    formatBasicLink('博客', info.blog),
+    ...info.customItems
+      .map((item) => [item.label.trim(), item.value.trim()].filter(Boolean).join('：'))
+      .filter(Boolean),
+  ].forEach((line) => lines.push(line))
   return lines.join('\n')
 }
 
