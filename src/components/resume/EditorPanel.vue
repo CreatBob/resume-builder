@@ -11,7 +11,6 @@ import SelfIntroEditor from './editors/SelfIntroEditor.vue'
 import AiOptimizePanel from '@/components/ai/AiOptimizePanel.vue'
 import EditorFloatingTools from './EditorFloatingTools.vue'
 import EditorModuleList from './EditorModuleList.vue'
-import LayoutSettingsPanel from './LayoutSettingsPanel.vue'
 // author: jf
 
 const store = useResumeStore()
@@ -222,8 +221,6 @@ onUnmounted(() => {
         <p class="stat-value">{{ visibleCount }} / {{ store.modules.length }}</p>
       </div>
     </div>
-
-    <LayoutSettingsPanel />
 
     <section class="info-editor">
       <div class="info-editor-header">

@@ -1,6 +1,7 @@
 ﻿<script setup lang="ts">
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useResumeStore } from '@/stores/resume'
+import LayoutSettingsPanel from '@/components/resume/LayoutSettingsPanel.vue'
 import TemplatePickerDialog from '@/components/resume/TemplatePickerDialog.vue'
 import {
   RESUME_TEMPLATES,
@@ -19,6 +20,10 @@ const exportProgressText = ref('')
 type ExportQualityMode = 'compressed' | 'hd'
 const exportMenuOpen = ref(false)
 const exportMenuRef = ref<HTMLElement | null>(null)
+const layoutMenuOpen = ref(false)
+const layoutMenuRef = ref<HTMLElement | null>(null)
+const lineHeightMenuOpen = ref(false)
+const lineHeightMenuRef = ref<HTMLElement | null>(null)
 const templatePickerOpen = ref(false)
 
 const A4_WIDTH = 794
@@ -40,6 +45,19 @@ const currentTemplate = computed<ResumeTemplateDefinition>(
 )
 const currentTemplateComponent = computed(() => currentTemplate.value.component)
 const a4TemplateLabel = computed(() => `A4 / ${currentTemplate.value.name}`)
+const lineHeightPresets = [
+  { label: '紧凑', value: 1.2 },
+  { label: '标准', value: 1.4 },
+  { label: '舒展', value: 1.6 },
+  { label: '默认', value: 1.75 },
+  { label: '宽松', value: 2 },
+  { label: '加宽', value: 2.2 },
+]
+const currentLineHeightLabel = computed(() => {
+  const current = store.layoutSettings.contentLineHeight
+  const preset = lineHeightPresets.find((item) => Math.abs(item.value - current) < 0.01)
+  return preset ? `行距 ${preset.value.toFixed(2)}` : `行距 ${current.toFixed(2)}`
+})
 
 function waitNextFrame(): Promise<void> {
   return new Promise((resolve) => requestAnimationFrame(() => resolve()))
@@ -149,6 +167,8 @@ function updatePageBreaks() {
 function openTemplatePicker() {
   templatePickerOpen.value = true
   exportMenuOpen.value = false
+  layoutMenuOpen.value = false
+  lineHeightMenuOpen.value = false
 }
 
 function chooseTemplate(key: ResumeTemplateKey) {
@@ -178,6 +198,7 @@ watch(
     JSON.stringify(store.awardList),
     store.selfIntro,
     store.selectedTemplateKey,
+    JSON.stringify(store.layoutSettings),
   ],
   () => {
     nextTick(() => updatePageBreaks())
@@ -192,19 +213,46 @@ onUnmounted(() => {
 function handleExportTriggerClick() {
   if (exporting.value) return
   exportMenuOpen.value = !exportMenuOpen.value
+  layoutMenuOpen.value = false
+  lineHeightMenuOpen.value = false
 }
 
 function handleExportTriggerEnter() {
   if (exporting.value) return
   exportMenuOpen.value = true
+  layoutMenuOpen.value = false
+  lineHeightMenuOpen.value = false
 }
 
 function handleDocumentPointerDown(event: MouseEvent) {
   const target = event.target as Node | null
-  if (!target || !exportMenuRef.value) return
-  if (!exportMenuRef.value.contains(target)) {
+  if (!target) return
+  if (exportMenuRef.value && !exportMenuRef.value.contains(target)) {
     exportMenuOpen.value = false
   }
+  if (layoutMenuRef.value && !layoutMenuRef.value.contains(target)) {
+    layoutMenuOpen.value = false
+  }
+  if (lineHeightMenuRef.value && !lineHeightMenuRef.value.contains(target)) {
+    lineHeightMenuOpen.value = false
+  }
+}
+
+function handleLayoutTriggerClick() {
+  layoutMenuOpen.value = !layoutMenuOpen.value
+  lineHeightMenuOpen.value = false
+  exportMenuOpen.value = false
+}
+
+function handleLineHeightTriggerClick() {
+  lineHeightMenuOpen.value = !lineHeightMenuOpen.value
+  layoutMenuOpen.value = false
+  exportMenuOpen.value = false
+}
+
+function handleLineHeightSelect(value: number) {
+  store.updateLayoutSetting('contentLineHeight', value)
+  lineHeightMenuOpen.value = false
 }
 
 function handleExportMarkdown() {
@@ -346,19 +394,54 @@ async function exportPDF(mode: ExportQualityMode) {
         </button>
         <span class="a4-badge">{{ a4TemplateLabel }}</span>
       </div>
-      <div
-        ref="exportMenuRef"
-        class="export-actions export-dropdown"
-        @mouseenter="handleExportTriggerEnter"
-      >
-        <button class="btn-export" :disabled="exporting" @click="handleExportTriggerClick">
-          {{ exporting ? '导出中...' : '导出' }}
-        </button>
-        <div v-if="exportMenuOpen && !exporting" class="export-menu">
-          <button class="export-menu-item" @click="exportPDF('hd')">导出高清 PDF</button>
-          <button class="export-menu-item" @click="exportPDF('compressed')">导出压缩 PDF</button>
-          <button class="export-menu-item" @click="handleExportMarkdown">导出 Markdown</button>
-          <button class="export-menu-item" @click="handleExportJson">导出 JSON 进度</button>
+      <div class="preview-toolbar">
+        <div ref="layoutMenuRef" class="toolbar-dropdown">
+          <button class="toolbar-button" type="button" :aria-expanded="layoutMenuOpen" @click="handleLayoutTriggerClick">
+            间距配置
+          </button>
+          <div v-if="layoutMenuOpen" class="layout-popover">
+            <LayoutSettingsPanel />
+          </div>
+        </div>
+
+        <div ref="lineHeightMenuRef" class="toolbar-dropdown">
+          <button
+            class="toolbar-button"
+            type="button"
+            :aria-expanded="lineHeightMenuOpen"
+            @click="handleLineHeightTriggerClick"
+          >
+            {{ currentLineHeightLabel }}
+          </button>
+          <div v-if="lineHeightMenuOpen" class="line-height-menu">
+            <button
+              v-for="preset in lineHeightPresets"
+              :key="preset.value"
+              class="line-height-item"
+              :class="{ active: Math.abs(store.layoutSettings.contentLineHeight - preset.value) < 0.01 }"
+              type="button"
+              @click="handleLineHeightSelect(preset.value)"
+            >
+              <span>{{ preset.label }}</span>
+              <strong>{{ preset.value.toFixed(2) }}</strong>
+            </button>
+          </div>
+        </div>
+
+        <div
+          ref="exportMenuRef"
+          class="export-actions export-dropdown"
+          @mouseenter="handleExportTriggerEnter"
+        >
+          <button class="btn-export" :disabled="exporting" @click="handleExportTriggerClick">
+            {{ exporting ? '导出中...' : '导出' }}
+          </button>
+          <div v-if="exportMenuOpen && !exporting" class="export-menu">
+            <button class="export-menu-item" @click="exportPDF('hd')">导出高清 PDF</button>
+            <button class="export-menu-item" @click="exportPDF('compressed')">导出压缩 PDF</button>
+            <button class="export-menu-item" @click="handleExportMarkdown">导出 Markdown</button>
+            <button class="export-menu-item" @click="handleExportJson">导出 JSON 进度</button>
+          </div>
         </div>
       </div>
     </div>
@@ -506,6 +589,99 @@ async function exportPDF(mode: ExportQualityMode) {
   font-weight: 600;
   cursor: pointer;
   flex-shrink: 0;
+}
+
+.preview-toolbar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.toolbar-dropdown {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.toolbar-button {
+  height: 30px;
+  padding: 0 10px;
+  border-radius: 8px;
+  border: 1px solid #ddcfbf;
+  background: #fff;
+  color: #2d2521;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: border-color 0.18s ease, color 0.18s ease, background-color 0.18s ease;
+}
+
+.toolbar-button:hover,
+.toolbar-button[aria-expanded='true'] {
+  border-color: #d97745;
+  color: #d97745;
+  background: #fff9f4;
+}
+
+.layout-popover {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  width: 390px;
+  padding: 18px 20px;
+  border-radius: 8px;
+  border: 1px solid #e9ded0;
+  background: #fff;
+  box-shadow: 0 18px 34px rgba(45, 37, 33, 0.16);
+  z-index: 18;
+}
+
+.line-height-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  min-width: 132px;
+  padding: 4px;
+  border-radius: 8px;
+  border: 1px solid #e9ded0;
+  background: #fff;
+  box-shadow: 0 12px 24px rgba(45, 37, 33, 0.14);
+  z-index: 18;
+}
+
+.line-height-item {
+  width: 100%;
+  min-height: 32px;
+  border: none;
+  border-radius: 6px;
+  background: #fff;
+  color: #2d2521;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0 9px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.line-height-item strong {
+  color: #8a7461;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.line-height-item:hover,
+.line-height-item.active {
+  background: #fff4ec;
+  color: #d97745;
+}
+
+.line-height-item.active strong {
+  color: #d97745;
 }
 
 .btn-export:disabled {

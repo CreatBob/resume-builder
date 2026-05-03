@@ -21,9 +21,9 @@ const layoutSettingGroups: LayoutSettingGroup[] = [
   {
     title: '页面边距',
     controls: [
-      { key: 'pageMarginTop', label: '上边距', unit: 'px' },
-      { key: 'pageMarginLeft', label: '左边距', unit: 'px' },
-      { key: 'pageMarginRight', label: '右边距', unit: 'px' },
+      { key: 'pageMarginTop', label: '页面上边距', unit: 'px' },
+      { key: 'pageMarginLeft', label: '页面左边距', unit: 'px' },
+      { key: 'pageMarginRight', label: '页面右边距', unit: 'px' },
     ],
   },
   {
@@ -33,10 +33,6 @@ const layoutSettingGroups: LayoutSettingGroup[] = [
       { key: 'moduleMarginBottom', label: '模块下边距', unit: 'px' },
       { key: 'sectionTitleContentGap', label: '标题正文间距', unit: 'px' },
     ],
-  },
-  {
-    title: '字体行距',
-    controls: [{ key: 'contentLineHeight', label: '正文行距', unit: '' }],
   },
 ]
 
@@ -58,17 +54,14 @@ function handleResetLayoutSettings() {
 <template>
   <section class="layout-settings">
     <div class="layout-settings-head">
-      <div>
-        <h2 class="layout-settings-title">版式设置</h2>
-        <p class="layout-settings-subtitle">全局控制页面边距、模块间距和正文行距</p>
-      </div>
+      <h2 class="layout-settings-title">间距配置</h2>
       <button
         class="btn-reset-layout"
         type="button"
         :disabled="isDefaultLayout"
         @click="handleResetLayoutSettings"
       >
-        恢复默认
+        重置
       </button>
     </div>
 
@@ -109,35 +102,29 @@ function handleResetLayoutSettings() {
 <style scoped>
 .layout-settings {
   background: #fff;
-  border: 1px solid #e9ded0;
-  border-radius: 12px;
-  padding: 14px;
+  border: none;
+  border-radius: 8px;
+  padding: 0;
 }
 
 .layout-settings-head {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
   gap: 12px;
-  margin-bottom: 12px;
+  margin-bottom: 10px;
 }
 
 .layout-settings-title {
   color: #2d2521;
-  font-size: 16px;
+  font-size: 14px;
   font-weight: 700;
 }
 
-.layout-settings-subtitle {
-  margin-top: 2px;
-  color: #8a7461;
-  font-size: 12px;
-}
-
 .btn-reset-layout {
-  height: 32px;
-  padding: 0 10px;
-  border-radius: 8px;
+  height: 28px;
+  padding: 0 9px;
+  border-radius: 7px;
   border: 1px solid #ddcfbf;
   background: #fff;
   color: #2d2521;
@@ -160,15 +147,12 @@ function handleResetLayoutSettings() {
 
 .layout-settings-groups {
   display: grid;
-  gap: 12px;
+  gap: 10px;
 }
 
 .layout-setting-group {
   display: grid;
   gap: 8px;
-  padding: 10px;
-  border-radius: 10px;
-  background: #f8f3ed;
 }
 
 .layout-setting-group-title {
@@ -179,7 +163,7 @@ function handleResetLayoutSettings() {
 
 .layout-setting-row {
   display: grid;
-  grid-template-columns: 82px minmax(0, 1fr) 72px;
+  grid-template-columns: 92px minmax(0, 1fr) 72px;
   align-items: center;
   gap: 10px;
 }
@@ -226,10 +210,6 @@ function handleResetLayoutSettings() {
 }
 
 @container (max-width: 560px) {
-  .layout-settings-head {
-    flex-direction: column;
-  }
-
   .layout-setting-row {
     grid-template-columns: 1fr;
     gap: 6px;
