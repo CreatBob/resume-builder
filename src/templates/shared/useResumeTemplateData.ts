@@ -1,5 +1,5 @@
 // author: jf
-import { computed } from 'vue'
+import { computed, type CSSProperties } from 'vue'
 import { useResumeStore } from '@/stores/resume'
 import type { MetaIconKey } from './metaIcons'
 import { toHref } from './metaIcons'
@@ -138,6 +138,19 @@ export function useResumeTemplateData() {
     return { order: moduleOrderMap.value[key] ?? 99 }
   }
 
+  const layoutStyle = computed<CSSProperties>(
+    () =>
+      ({
+        '--resume-page-margin-top': `${store.layoutSettings.pageMarginTop}px`,
+        '--resume-page-margin-left': `${store.layoutSettings.pageMarginLeft}px`,
+        '--resume-page-margin-right': `${store.layoutSettings.pageMarginRight}px`,
+        '--resume-module-margin-top': `${store.layoutSettings.moduleMarginTop}px`,
+        '--resume-module-margin-bottom': `${store.layoutSettings.moduleMarginBottom}px`,
+        '--resume-section-title-content-gap': `${store.layoutSettings.sectionTitleContentGap}px`,
+        '--resume-content-line-height': String(store.layoutSettings.contentLineHeight),
+      }) as CSSProperties
+  )
+
   return {
     store,
     hasAnyContent,
@@ -148,5 +161,6 @@ export function useResumeTemplateData() {
     profileLinks,
     customBasicMeta,
     moduleOrderStyle,
+    layoutStyle,
   }
 }

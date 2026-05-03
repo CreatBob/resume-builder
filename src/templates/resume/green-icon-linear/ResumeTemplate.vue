@@ -3,7 +3,7 @@ import { computed } from 'vue'
 import { iconPaths, iconViewBox, isFilledIcon, toHref, type MetaIconKey } from '../../shared/metaIcons'
 import { useResumeTemplateData } from '../../shared/useResumeTemplateData'
 
-const { store, hasAnyContent, lineOneMeta, lineTwoMeta, lineThreeMeta, moduleOrderStyle } = useResumeTemplateData()
+const { store, hasAnyContent, lineOneMeta, lineTwoMeta, lineThreeMeta, moduleOrderStyle, layoutStyle } = useResumeTemplateData()
 
 const sectionIconMap: Record<'education' | 'skills' | 'workExperience' | 'projectExperience' | 'awards' | 'selfIntro', MetaIconKey> = {
   education: 'education',
@@ -42,7 +42,7 @@ function projectHref(link: string): string {
 </script>
 
 <template>
-  <div class="resume-template-green-icon-linear">
+  <div class="resume-template-green-icon-linear" :style="layoutStyle">
     <div class="top-accent"></div>
     <div class="resume-body">
       <header v-if="store.isModuleVisible('basicInfo')" class="resume-header">
@@ -344,7 +344,7 @@ function projectHref(link: string): string {
   z-index: 1;
   display: flex;
   flex-direction: column;
-  padding: 12px 20px 20px;
+  padding: var(--resume-page-margin-top) var(--resume-page-margin-right) 20px var(--resume-page-margin-left);
 }
 
 .resume-header {
@@ -445,11 +445,12 @@ function projectHref(link: string): string {
 }
 
 .resume-section {
-  margin-bottom: 8px;
+  margin-top: var(--resume-module-margin-top);
+  margin-bottom: var(--resume-module-margin-bottom);
 }
 
 .section-title {
-  margin: 0 0 6px;
+  margin: 0 0 var(--resume-section-title-content-gap);
   display: flex;
   align-items: center;
   gap: 8px;
@@ -581,7 +582,7 @@ function projectHref(link: string): string {
   margin-top: 3px;
   color: #1f2933;
   font-size: 12px;
-  line-height: 1.65;
+  line-height: var(--resume-content-line-height);
 }
 
 .empty {

@@ -3,7 +3,8 @@
 import { computed } from 'vue'
 import { useResumeTemplateData } from '../../shared/useResumeTemplateData'
 
-const { store, hasAnyContent, simpleContactMeta, profileLinks, customBasicMeta, moduleOrderStyle } = useResumeTemplateData()
+const { store, hasAnyContent, simpleContactMeta, profileLinks, customBasicMeta, moduleOrderStyle, layoutStyle } =
+  useResumeTemplateData()
 
 const displayName = computed(() => store.basicInfo.name || '通用职场简历')
 
@@ -44,7 +45,7 @@ function subLine(values: Array<string | undefined>): string {
 </script>
 
 <template>
-  <div class="resume-template-workplace">
+  <div class="resume-template-workplace" :style="layoutStyle">
     <div class="hero-bg">
       <div class="avatar-wrap">
         <img v-if="store.basicInfo.avatar" :src="store.basicInfo.avatar" alt="头像" />
@@ -152,7 +153,7 @@ function subLine(values: Array<string | undefined>): string {
   box-sizing: border-box;
   width: 100%;
   min-height: 100%;
-  padding: 0 28px 16px;
+  padding: var(--resume-page-margin-top) var(--resume-page-margin-right) 16px var(--resume-page-margin-left);
   color: #1a1a1a;
   background: linear-gradient(160deg, #f8fbff 0%, #f3f6ff 100%);
   position: relative;
@@ -179,7 +180,7 @@ function subLine(values: Array<string | undefined>): string {
 
 .hero-bg {
   position: relative;
-  margin: 0 -28px;
+  margin: 0;
   height: 116px;
   overflow: visible;
   display: flex;
@@ -276,7 +277,8 @@ function subLine(values: Array<string | undefined>): string {
 }
 
 .resume-section {
-  margin-bottom: 8px;
+  margin-top: var(--resume-module-margin-top);
+  margin-bottom: var(--resume-module-margin-bottom);
 }
 
 .resume-section:last-of-type {
@@ -285,7 +287,7 @@ function subLine(values: Array<string | undefined>): string {
 
 .section-title {
   position: relative;
-  margin: 4px 0 4px;
+  margin: 4px 0 var(--resume-section-title-content-gap);
   text-align: center;
   color: #3c78ef;
   font-size: 18px;
@@ -366,7 +368,7 @@ function subLine(values: Array<string | undefined>): string {
   margin-top: 3px;
   color: #111827;
   font-size: 13px;
-  line-height: 1.85;
+  line-height: var(--resume-content-line-height);
 }
 
 .empty {

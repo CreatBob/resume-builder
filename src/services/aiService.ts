@@ -1,4 +1,4 @@
-﻿// author: jf
+// author: jf
 import type {
   AwardEntry,
   BasicInfo,

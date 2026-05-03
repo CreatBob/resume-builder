@@ -3,7 +3,7 @@
 import { computed } from 'vue'
 import { useResumeTemplateData } from '../../shared/useResumeTemplateData'
 
-const { store, hasAnyContent, profileLinks, customBasicMeta, moduleOrderStyle } = useResumeTemplateData()
+const { store, hasAnyContent, profileLinks, customBasicMeta, moduleOrderStyle, layoutStyle } = useResumeTemplateData()
 
 const contactItems = computed(() => {
   const items = [
@@ -48,7 +48,7 @@ function subLine(values: Array<string | undefined>): string {
 </script>
 
 <template>
-  <div class="resume-template-blue-split-pro">
+  <div class="resume-template-blue-split-pro" :style="layoutStyle">
     <aside class="left-panel">
       <div class="identity">
         <div class="avatar-wrap">
@@ -194,7 +194,7 @@ function subLine(values: Array<string | undefined>): string {
     radial-gradient(circle at 100% 0, rgba(255, 255, 255, 0.16) 0 120px, transparent 121px),
     linear-gradient(180deg, #3f71d8 0%, #345fc0 56%, #2d54ab 100%);
   color: #e8f1ff;
-  padding: 22px 16px 18px;
+  padding: var(--resume-page-margin-top) 16px 18px var(--resume-page-margin-left);
 }
 
 .identity {
@@ -277,7 +277,7 @@ function subLine(values: Array<string | undefined>): string {
 
 .right-panel {
   min-width: 0;
-  padding: 18px 24px 14px;
+  padding: var(--resume-page-margin-top) var(--resume-page-margin-right) 14px 24px;
   display: flex;
   flex-direction: column;
   background:
@@ -286,7 +286,8 @@ function subLine(values: Array<string | undefined>): string {
 }
 
 .resume-section {
-  margin-bottom: 10px;
+  margin-top: var(--resume-module-margin-top);
+  margin-bottom: var(--resume-module-margin-bottom);
 }
 
 .resume-section:last-of-type {
@@ -294,7 +295,7 @@ function subLine(values: Array<string | undefined>): string {
 }
 
 .section-title {
-  margin: 0 0 6px;
+  margin: 0 0 var(--resume-section-title-content-gap);
   font-size: 16px;
   font-weight: 700;
   color: #2f63c4;
@@ -375,7 +376,7 @@ function subLine(values: Array<string | undefined>): string {
   margin-top: 2px;
   color: #0f172a;
   font-size: 13px;
-  line-height: 1.8;
+  line-height: var(--resume-content-line-height);
 }
 
 .empty {

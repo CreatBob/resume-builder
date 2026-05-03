@@ -2,11 +2,11 @@
 import { iconPaths, iconViewBox, isFilledIcon } from '../../shared/metaIcons'
 import { useResumeTemplateData } from '../../shared/useResumeTemplateData'
 
-const { store, hasAnyContent, lineOneMeta, lineTwoMeta, lineThreeMeta, moduleOrderStyle } = useResumeTemplateData()
+const { store, hasAnyContent, lineOneMeta, lineTwoMeta, lineThreeMeta, moduleOrderStyle, layoutStyle } = useResumeTemplateData()
 </script>
 
 <template>
-  <div class="resume-template-default">
+  <div class="resume-template-default" :style="layoutStyle">
     <header v-if="store.isModuleVisible('basicInfo')" class="resume-header">
       <div class="header-main">
         <h1 class="name">{{ store.basicInfo.name || '姓名' }}</h1>
@@ -177,7 +177,7 @@ const { store, hasAnyContent, lineOneMeta, lineTwoMeta, lineThreeMeta, moduleOrd
   box-sizing: border-box;
   width: 100%;
   min-height: 100%;
-  padding: 28px 24px;
+  padding: var(--resume-page-margin-top) var(--resume-page-margin-right) 28px var(--resume-page-margin-left);
   color: #000;
   display: flex;
   flex-direction: column;
@@ -264,7 +264,8 @@ const { store, hasAnyContent, lineOneMeta, lineTwoMeta, lineThreeMeta, moduleOrd
 }
 
 .resume-section {
-  margin-bottom: 8px;
+  margin-top: var(--resume-module-margin-top);
+  margin-bottom: var(--resume-module-margin-bottom);
 }
 
 .resume-section:last-of-type {
@@ -275,7 +276,7 @@ const { store, hasAnyContent, lineOneMeta, lineTwoMeta, lineThreeMeta, moduleOrd
   position: relative;
   height: 32px;
   line-height: 32px;
-  margin-bottom: 6px;
+  margin-bottom: var(--resume-section-title-content-gap);
   padding-left: 12px;
   font-size: 18px;
   font-weight: 700;
@@ -388,7 +389,7 @@ const { store, hasAnyContent, lineOneMeta, lineTwoMeta, lineThreeMeta, moduleOrd
   margin-top: 3px;
   color: #000;
   font-size: 12px;
-  line-height: 1.75;
+  line-height: var(--resume-content-line-height);
 }
 
 .empty {

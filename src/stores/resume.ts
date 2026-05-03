@@ -86,6 +86,18 @@ export interface ModuleConfig {
   visible: boolean
 }
 
+export interface ResumeLayoutSettings {
+  pageMarginTop: number
+  pageMarginLeft: number
+  pageMarginRight: number
+  moduleMarginTop: number
+  moduleMarginBottom: number
+  sectionTitleContentGap: number
+  contentLineHeight: number
+}
+
+export type ResumeLayoutSettingKey = keyof ResumeLayoutSettings
+
 type MoveDirection = 'up' | 'down'
 const DEFAULT_MODULE_ORDER = [
   'basicInfo',
@@ -96,6 +108,26 @@ const DEFAULT_MODULE_ORDER = [
   'awards',
   'selfIntro',
 ] as const
+
+export const DEFAULT_RESUME_LAYOUT_SETTINGS: ResumeLayoutSettings = {
+  pageMarginTop: 28,
+  pageMarginLeft: 24,
+  pageMarginRight: 24,
+  moduleMarginTop: 0,
+  moduleMarginBottom: 8,
+  sectionTitleContentGap: 6,
+  contentLineHeight: 1.75,
+}
+
+export const RESUME_LAYOUT_LIMITS: Record<ResumeLayoutSettingKey, { min: number; max: number; step: number }> = {
+  pageMarginTop: { min: 8, max: 60, step: 1 },
+  pageMarginLeft: { min: 8, max: 60, step: 1 },
+  pageMarginRight: { min: 8, max: 60, step: 1 },
+  moduleMarginTop: { min: 0, max: 32, step: 1 },
+  moduleMarginBottom: { min: 0, max: 40, step: 1 },
+  sectionTitleContentGap: { min: 0, max: 28, step: 1 },
+  contentLineHeight: { min: 1, max: 2.4, step: 0.05 },
+}
 
 let _idCounter = 0
 function genId(): string {
@@ -142,6 +174,36 @@ function normalizeCustomBasicItems(value: unknown): CustomBasicInfoItem[] {
       }
     })
     .filter((item): item is CustomBasicInfoItem => Boolean(item))
+}
+
+function normalizeNumber(value: unknown, fallback: number, key: ResumeLayoutSettingKey): number {
+  const numericValue = typeof value === 'number' ? value : Number(value)
+  const limits = RESUME_LAYOUT_LIMITS[key]
+  if (!Number.isFinite(numericValue)) return fallback
+  const steppedValue = Math.round(numericValue / limits.step) * limits.step
+  const precision = limits.step < 1 ? 2 : 0
+  return Number(Math.min(limits.max, Math.max(limits.min, steppedValue)).toFixed(precision))
+}
+
+function normalizeLayoutSettings(value: unknown): ResumeLayoutSettings {
+  const incoming = value && typeof value === 'object' ? (value as Partial<ResumeLayoutSettings>) : {}
+  return {
+    pageMarginTop: normalizeNumber(incoming.pageMarginTop, DEFAULT_RESUME_LAYOUT_SETTINGS.pageMarginTop, 'pageMarginTop'),
+    pageMarginLeft: normalizeNumber(incoming.pageMarginLeft, DEFAULT_RESUME_LAYOUT_SETTINGS.pageMarginLeft, 'pageMarginLeft'),
+    pageMarginRight: normalizeNumber(incoming.pageMarginRight, DEFAULT_RESUME_LAYOUT_SETTINGS.pageMarginRight, 'pageMarginRight'),
+    moduleMarginTop: normalizeNumber(incoming.moduleMarginTop, DEFAULT_RESUME_LAYOUT_SETTINGS.moduleMarginTop, 'moduleMarginTop'),
+    moduleMarginBottom: normalizeNumber(
+      incoming.moduleMarginBottom,
+      DEFAULT_RESUME_LAYOUT_SETTINGS.moduleMarginBottom,
+      'moduleMarginBottom'
+    ),
+    sectionTitleContentGap: normalizeNumber(
+      incoming.sectionTitleContentGap,
+      DEFAULT_RESUME_LAYOUT_SETTINGS.sectionTitleContentGap,
+      'sectionTitleContentGap'
+    ),
+    contentLineHeight: normalizeNumber(incoming.contentLineHeight, DEFAULT_RESUME_LAYOUT_SETTINGS.contentLineHeight, 'contentLineHeight'),
+  }
 }
 
 export const useResumeStore = defineStore('resume', () => {
@@ -224,6 +286,7 @@ export const useResumeStore = defineStore('resume', () => {
   const awardList = reactive<AwardEntry[]>([])
   const selfIntro = ref('')
   const selectedTemplateKey = ref<ResumeTemplateKey>('default')
+  const layoutSettings = reactive<ResumeLayoutSettings>({ ...DEFAULT_RESUME_LAYOUT_SETTINGS })
   const nextAutoSaveAt = ref<number | null>(null)
   const lastSavedAt = ref<number | null>(null)
   const lastSaveMode = ref<'auto' | 'manual' | null>(null)
@@ -236,6 +299,20 @@ export const useResumeStore = defineStore('resume', () => {
 
   function setTemplate(key: ResumeTemplateKey) {
     selectedTemplateKey.value = key
+  }
+
+  function updateLayoutSetting(key: ResumeLayoutSettingKey, value: unknown) {
+    layoutSettings[key] = normalizeNumber(value, DEFAULT_RESUME_LAYOUT_SETTINGS[key], key)
+  }
+
+  function resetLayoutSettings() {
+    Object.assign(layoutSettings, DEFAULT_RESUME_LAYOUT_SETTINGS)
+  }
+
+  function isDefaultLayoutSettings(): boolean {
+    return (Object.keys(DEFAULT_RESUME_LAYOUT_SETTINGS) as ResumeLayoutSettingKey[]).every(
+      (key) => layoutSettings[key] === DEFAULT_RESUME_LAYOUT_SETTINGS[key]
+    )
   }
 
   function canMoveModule(key: string, direction: MoveDirection): boolean {
@@ -423,6 +500,7 @@ export const useResumeStore = defineStore('resume', () => {
     return JSON.stringify({
       modules: modules.map((m) => ({ ...m })),
       selectedTemplateKey: selectedTemplateKey.value,
+      layoutSettings: { ...layoutSettings },
       basicInfo: { ...basicInfo },
       educationList: educationList.map((e) => ({ ...e })),
       skills: skills.value,
@@ -442,6 +520,7 @@ export const useResumeStore = defineStore('resume', () => {
     const data = {
       modules: modules.map((m) => ({ ...m })),
       selectedTemplateKey: selectedTemplateKey.value,
+      layoutSettings: { ...layoutSettings },
       basicInfo: { ...basicInfo },
       educationList: educationList.map((e) => ({ ...e })),
       skills: skills.value,
@@ -498,6 +577,7 @@ export const useResumeStore = defineStore('resume', () => {
         modules.splice(0, modules.length, ...nextModules)
       }
       selectedTemplateKey.value = normalizeResumeTemplateKey(data.selectedTemplateKey ?? data.selectedTemplateId)
+      Object.assign(layoutSettings, normalizeLayoutSettings(data.layoutSettings))
       if (data.basicInfo) {
         const incomingBasicInfo = data.basicInfo as Partial<BasicInfo> & Record<string, unknown>
         Object.assign(basicInfo, incomingBasicInfo, {
@@ -539,6 +619,7 @@ export const useResumeStore = defineStore('resume', () => {
       () => JSON.stringify(awardList),
       selfIntro,
       selectedTemplateKey,
+      () => JSON.stringify(layoutSettings),
       () => JSON.stringify(modules),
     ],
     () => {
@@ -555,6 +636,7 @@ export const useResumeStore = defineStore('resume', () => {
   return {
     modules,
     selectedTemplateKey,
+    layoutSettings,
     basicInfo,
     educationList,
     skills,
@@ -564,6 +646,9 @@ export const useResumeStore = defineStore('resume', () => {
     selfIntro,
     toggleModule,
     setTemplate,
+    updateLayoutSetting,
+    resetLayoutSettings,
+    isDefaultLayoutSettings,
     canMoveModule,
     moveModule,
     reorderModule,

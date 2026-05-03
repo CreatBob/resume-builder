@@ -4,7 +4,8 @@ import { computed } from 'vue'
 import { toHref } from '../../shared/metaIcons'
 import { useResumeTemplateData } from '../../shared/useResumeTemplateData'
 
-const { store, hasAnyContent, simpleContactMeta, profileLinks, customBasicMeta, moduleOrderStyle } = useResumeTemplateData()
+const { store, hasAnyContent, simpleContactMeta, profileLinks, customBasicMeta, moduleOrderStyle, layoutStyle } =
+  useResumeTemplateData()
 
 const moduleLabelMap = computed(() =>
   store.modules.reduce<Record<string, string>>((acc, module) => {
@@ -70,7 +71,7 @@ function projectHref(link: string): string {
 </script>
 
 <template>
-  <div class="resume-template-red-gradient">
+  <div class="resume-template-red-gradient" :style="layoutStyle">
     <header v-if="store.isModuleVisible('basicInfo')" class="hero">
       <div class="photo-panel">
         <div class="photo-frame">
@@ -251,7 +252,10 @@ function projectHref(link: string): string {
   display: grid;
   grid-template-columns: 176px minmax(0, 1fr);
   align-items: stretch;
+  margin-top: var(--resume-page-margin-top);
+  margin-right: var(--resume-page-margin-right);
   margin-bottom: 18px;
+  margin-left: var(--resume-page-margin-left);
 }
 
 .photo-panel {
@@ -394,11 +398,12 @@ function projectHref(link: string): string {
   display: flex;
   flex-direction: column;
   gap: 0;
-  padding: 0 22px 18px;
+  padding: 0 var(--resume-page-margin-right) 18px var(--resume-page-margin-left);
 }
 
 .resume-section {
-  margin-bottom: 12px;
+  margin-top: var(--resume-module-margin-top);
+  margin-bottom: var(--resume-module-margin-bottom);
 }
 
 .resume-section:last-of-type {
@@ -407,7 +412,7 @@ function projectHref(link: string): string {
 
 .section-title {
   position: relative;
-  margin: 0 0 10px;
+  margin: 0 0 var(--resume-section-title-content-gap);
   min-height: 30px;
   display: flex;
   align-items: center;
@@ -486,7 +491,7 @@ function projectHref(link: string): string {
   margin-top: 4px;
   color: #1f1a1a;
   font-size: 13px;
-  line-height: 1.85;
+  line-height: var(--resume-content-line-height);
 }
 
 .empty {

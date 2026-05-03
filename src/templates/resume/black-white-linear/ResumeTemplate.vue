@@ -3,7 +3,7 @@
 import { computed } from 'vue'
 import { useResumeTemplateData } from '../../shared/useResumeTemplateData'
 
-const { store, hasAnyContent, profileLinks, customBasicMeta, moduleOrderStyle } = useResumeTemplateData()
+const { store, hasAnyContent, profileLinks, customBasicMeta, moduleOrderStyle, layoutStyle } = useResumeTemplateData()
 
 const headerContact = computed(() => {
   const phone = store.basicInfo.phone.trim()
@@ -48,7 +48,7 @@ const customMetaLine = computed(() => customBasicMeta.value.map((item) => item.t
 </script>
 
 <template>
-  <div class="resume-template-black-white-linear">
+  <div class="resume-template-black-white-linear" :style="layoutStyle">
     <header v-if="store.isModuleVisible('basicInfo')" class="resume-header">
       <div class="header-main">
         <h1 class="name">{{ store.basicInfo.name || '超级简历' }}</h1>
@@ -179,7 +179,7 @@ const customMetaLine = computed(() => customBasicMeta.value.map((item) => item.t
   box-sizing: border-box;
   width: 100%;
   min-height: 100%;
-  padding: 20px 28px 16px;
+  padding: var(--resume-page-margin-top) var(--resume-page-margin-right) 16px var(--resume-page-margin-left);
   color: #111;
   display: flex;
   flex-direction: column;
@@ -265,7 +265,8 @@ const customMetaLine = computed(() => customBasicMeta.value.map((item) => item.t
 }
 
 .resume-section {
-  margin-bottom: 10px;
+  margin-top: var(--resume-module-margin-top);
+  margin-bottom: var(--resume-module-margin-bottom);
 }
 
 .resume-section:last-of-type {
@@ -273,7 +274,7 @@ const customMetaLine = computed(() => customBasicMeta.value.map((item) => item.t
 }
 
 .section-title {
-  margin: 0 0 8px;
+  margin: 0 0 var(--resume-section-title-content-gap);
   padding: 0 0 6px;
   font-size: 16px;
   font-weight: 700;
@@ -346,7 +347,7 @@ const customMetaLine = computed(() => customBasicMeta.value.map((item) => item.t
   margin-top: 3px;
   color: #111;
   font-size: 14px;
-  line-height: 1.85;
+  line-height: var(--resume-content-line-height);
 }
 
 .empty {

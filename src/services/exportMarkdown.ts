@@ -1,4 +1,4 @@
-﻿// author: jf
+// author: jf
 import type { useResumeStore } from '@/stores/resume'
 
 type ResumeStore = ReturnType<typeof useResumeStore>

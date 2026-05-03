@@ -3,7 +3,7 @@
 import { computed } from 'vue'
 import { useResumeTemplateData } from '../../shared/useResumeTemplateData'
 
-const { store, hasAnyContent, profileLinks, customBasicMeta, moduleOrderStyle } = useResumeTemplateData()
+const { store, hasAnyContent, profileLinks, customBasicMeta, moduleOrderStyle, layoutStyle } = useResumeTemplateData()
 
 const contactItems = computed(() => {
   const items = [
@@ -48,7 +48,7 @@ function subLine(values: Array<string | undefined>): string {
 </script>
 
 <template>
-  <div class="resume-template-blue-sidebar">
+  <div class="resume-template-blue-sidebar" :style="layoutStyle">
     <aside class="sidebar">
       <div class="identity">
         <div class="avatar-wrap">
@@ -187,7 +187,7 @@ function subLine(values: Array<string | undefined>): string {
   flex: 0 0 218px;
   background: linear-gradient(180deg, #1f73d9 0%, #1a5fb8 100%);
   color: #f8fbff;
-  padding: 26px 18px;
+  padding: var(--resume-page-margin-top) 18px 26px var(--resume-page-margin-left);
 }
 
 .identity {
@@ -277,7 +277,7 @@ function subLine(values: Array<string | undefined>): string {
   min-width: 0;
   display: flex;
   flex-direction: column;
-  padding: 20px 18px 16px;
+  padding: var(--resume-page-margin-top) var(--resume-page-margin-right) 16px 18px;
   background:
     radial-gradient(circle at 95% 18%, rgba(47, 111, 219, 0.06) 0, rgba(47, 111, 219, 0.06) 180px, transparent 181px),
     repeating-radial-gradient(circle at 95% 18%, rgba(47, 111, 219, 0.05) 0 1px, transparent 1px 13px),
@@ -285,7 +285,8 @@ function subLine(values: Array<string | undefined>): string {
 }
 
 .resume-section {
-  margin-bottom: 10px;
+  margin-top: var(--resume-module-margin-top);
+  margin-bottom: var(--resume-module-margin-bottom);
 }
 
 .resume-section:last-of-type {
@@ -293,7 +294,7 @@ function subLine(values: Array<string | undefined>): string {
 }
 
 .section-title {
-  margin: 2px 0 8px;
+  margin: 2px 0 var(--resume-section-title-content-gap);
   display: flex;
   align-items: center;
   gap: 8px;
@@ -381,7 +382,7 @@ function subLine(values: Array<string | undefined>): string {
   margin-top: 3px;
   color: #162338;
   font-size: 14px;
-  line-height: 1.8;
+  line-height: var(--resume-content-line-height);
 }
 
 .empty {
