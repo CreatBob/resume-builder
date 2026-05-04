@@ -1,4 +1,4 @@
-﻿<!-- author: jf -->
+<!-- author: Bob -->
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useResumeTemplateData } from '../../shared/useResumeTemplateData'
@@ -184,7 +184,7 @@ function subLine(values: Array<string | undefined>): string {
 .resume-template-blue-sidebar {
   box-sizing: border-box;
   width: 100%;
-  min-height: 100%;
+  min-height: inherit;
   display: flex;
   background: #eef4ff;
   color: #172033;

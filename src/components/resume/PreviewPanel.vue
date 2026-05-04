@@ -10,7 +10,7 @@ import {
   type ResumeTemplateKey,
 } from '@/templates/resume'
 import { generateResumeMarkdown, downloadMarkdown } from '@/services/exportMarkdown'
-// author: jf
+// author: Bob
 
 const store = useResumeStore()
 const resumeRef = ref<HTMLElement | null>(null)
@@ -798,6 +798,10 @@ async function exportPDF(mode: ExportQualityMode) {
   border-radius: 4px;
   color: #000;
   box-shadow: 0 12px 24px rgba(45, 37, 33, 0.1);
+}
+
+.paper > :deep(*) {
+  min-height: inherit;
 }
 
 .paper.pdf-exporting {
