@@ -1,4 +1,4 @@
-<!-- author: jf -->
+<!-- author: Bob -->
 # Resume Builder Harness Engineering 工作流
 
 > 参考：OpenAI 于 2026 年 2 月 11 日发布的《Harness Engineering》  
@@ -21,10 +21,11 @@
 3. 前端固定在 `src/`，职责围绕简历编辑、AI 优化、AI 面试。
 4. Python AI 后端固定在 `python-ai-backend/`，采用 `api -> application -> domain <- infrastructure` 边界。
 5. Spring AI 后端固定在 `spring-ai-backend/`，采用 `controller / service / mapper / entity / dto / config / exception / cleaner` 边界。
-6. 前后端统一接口契约固定为 `'/api/ai/*'`，切换后端实现时前端不改接口路径。
-7. AI 面试会话数据固定落 MySQL，RAG 向量检索固定落 PostgreSQL + pgvector。
-8. 会话建表脚本固定只有一份：`sql/interview_schema.sql`。
-9. 联调端口固定为 `8999`，`spring-ai-backend` 和 `python-ai-backend` 同时只能启动一个。
+6. 前端视觉系统固定参考 `docs/design-system/theme-tokens.md`，默认主题为 `Career Blue Light`，涉及视觉与部署模式能力显示时必须先读取。
+7. 前后端统一接口契约固定为 `'/api/ai/*'`，切换后端实现时前端不改接口路径。
+8. AI 面试会话数据固定落 MySQL，RAG 向量检索固定落 PostgreSQL + pgvector。
+9. 会话建表脚本固定只有一份：`sql/interview_schema.sql`。
+10. 联调端口固定为 `8999`，`spring-ai-backend` 和 `python-ai-backend` 同时只能启动一个。
 
 ## 3. 核心原则
 
@@ -124,9 +125,10 @@
 标准流程：
 
 1. 先确认是页面、状态、服务还是接口问题。
-2. 先保住现有产品主线：简历编辑、AI 优化、AI 面试。
-3. 先保住 `api/` 与 `services/` 边界，再动组件。
-4. 只有页面和交互发生稳定变化时，才更新截图或文档。
+2. 涉及视觉、样式、主题、页面信息架构或部署模式能力显示时，先读取 `docs/design-system/theme-tokens.md`。
+3. 先保住现有产品主线：简历编辑、AI 优化、AI 面试。
+4. 先保住 `api/` 与 `services/` 边界，再动组件。
+5. 只有页面和交互发生稳定变化时，才更新截图或文档。
 
 ### 4.3 Python AI 后端任务
 
@@ -271,7 +273,8 @@
 4. 没有破坏 MySQL 与 pgvector 的职责分离。
 5. 没有引入与主业务无关的页面、接口或目录。
 6. 没有新增测试代码。
-7. 相关长期知识已经回写到仓库。
+7. 前端视觉变更没有偏离 `docs/design-system/theme-tokens.md` 中的主题 Token、组件规范和部署模式显示规则。
+8. 相关长期知识已经回写到仓库。
 
 ## 7. 推荐的固定节奏
 

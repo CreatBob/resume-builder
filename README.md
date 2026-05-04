@@ -1,4 +1,4 @@
-<!-- author: jf -->
+<!-- author: Bob -->
 # Resume Builder
 
 Resume Builder 是一个面向求职场景的简历编辑、模板开发、AI 简历优化、AI 面试与知识库训练一体化项目。前端基于 Vue 3 + Vite，后端提供 Spring AI 与 Python AI Backend 两套实现，二者面向前端保持同一套 `/api/ai/*` 契约，当前核心能力已对齐，联调时二选一启动即可。
@@ -734,6 +734,7 @@ resume-builder/
   screenshots/                   # README 页面截图
   docs/
     harness-engineering-workflow.md
+    design-system/theme-tokens.md # 前端 Career Blue Light 主题 Token 与视觉规范
     requirements/                # 历史任务需求文档
   .codex/skills/                 # 项目内置 Codex Skills
   start-python-backend.bat       # Python 后端一键启动脚本
@@ -817,12 +818,14 @@ npm run dev
 
 - `AGENTS.md`：仓库级 AI 执行规范。
 - `.rules/`：前端、后端、Spring AI、Python AI、MCP、审查等强制规则。
+- `docs/design-system/theme-tokens.md`：前端 `Career Blue Light` 主题 Token、视觉规范与部署模式能力显示规则。
 - `docs/requirements/`：多步骤任务的需求文档与验收记录。
 - `README.md`：产品能力、启动方式、环境变量、知识库和协作入口总览。
 
 执行原则：
 
 - 新增功能或行为变更先拆任务，再定义验收，再实现。
+- 前端视觉、样式、主题和页面信息架构调整必须先遵守主题 Token 文档。
 - 前端页面和交互变化优先用 Playwright 验证。
 - OpenAI 能力、模型、API 迁移优先查询官方 OpenAI docs MCP。
 - PR、Issue、Review、Checks 相关任务优先读取 GitHub 上下文。

@@ -6,8 +6,15 @@
 1. 处理本仓库任务时，必须先阅读并遵守 `.rules/` 目录下的规则文档。
 2. `.rules/` 下规则文档与本文件共同构成仓库级强制约束；如无更高优先级用户指令，不得绕过。
 3. 当前必须遵守的规则文档如下：
+   - `.rules/global-rules.md`
+   - `.rules/code-conventions.md`
+   - `.rules/frontend-mandatory-rules.md`
+   - `.rules/backend-mandatory-rules.md`
+   - `.rules/spring-ai-backend-mandatory-rules.md`
    - `.rules/python-ai-backend-mandatory-rules.md`
    - `.rules/harness-mcp-workflow-rules.md`
+   - `.rules/resume-storage-mandatory-rules.md`
+   - `.rules/code-review-rules.md`
 4. 若后续 `.rules/` 目录新增规则文档，默认同样属于必须遵守的仓库规则；执行任务前应一并读取。
 
 本规范适用于本仓库内所有 AI 协作与自动化改动。
@@ -63,6 +70,9 @@
 
 1. `docs/harness-engineering-workflow.md`
    - 仓库级 Harness Engineering 工作流，适用于任务路由、知识回写、熵治理与跨前后端协作时参考。
+2. `docs/design-system/theme-tokens.md`
+   - 前端主题 Token 与视觉规范，适用于页面重设计、组件样式、模板选择界面、AI 面板、AI 面试页、知识库页和部署模式能力显示规则。
+   - 凡涉及前端视觉、样式、主题或交互层级调整时，必须先阅读 `.rules/frontend-mandatory-rules.md` 和本文档。
 
 ## MCP 使用要求
 
