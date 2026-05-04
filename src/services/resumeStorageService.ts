@@ -51,6 +51,7 @@ const LEGACY_STORAGE_KEY = 'resume-builder-data'
 const LOCAL_INDEX_KEY = 'resume-builder-resume-index'
 const LOCAL_CURRENT_ID_KEY = 'resume-builder-current-id'
 const LOCAL_DOCUMENT_KEY_PREFIX = 'resume-builder-resume:'
+const AUTO_REMOTE_PROBE_RETRY_DELAYS = [300, 1000]
 
 export class ResumeStorageConflictError extends Error {
   constructor(message = '简历已被其他页面更新，请刷新后再编辑') {
@@ -227,6 +228,121 @@ class RemoteResumeStorageDriver implements ResumeStorageDriver {
   }
 }
 
+class AutoResumeStorageDriver implements ResumeStorageDriver {
+  private resolvedDriver: ResumeStorageDriver | null = null
+
+  async list(defaultContent: ResumeData): Promise<ResumeDocument[]> {
+    const driver = await this.resolveDriver(defaultContent)
+    return driver.list(defaultContent)
+  }
+
+  async get(id: string): Promise<ResumeDocument> {
+    return this.requireResolvedDriver().get(id)
+  }
+
+  async create(payload: ResumeDocumentPayload): Promise<ResumeDocument> {
+    return this.requireResolvedDriver().create(payload)
+  }
+
+  async update(id: string, payload: ResumeDocumentPayload): Promise<ResumeDocument> {
+    return this.requireResolvedDriver().update(id, payload)
+  }
+
+  async delete(id: string): Promise<void> {
+    await this.requireResolvedDriver().delete(id)
+  }
+
+  getCurrentId(): string | null {
+    return this.resolvedDriver?.getCurrentId() ?? localStorage.getItem(LOCAL_CURRENT_ID_KEY)
+  }
+
+  setCurrentId(id: string): void {
+    this.requireResolvedDriver().setCurrentId(id)
+  }
+
+  private async resolveDriver(defaultContent: ResumeData): Promise<ResumeStorageDriver> {
+    if (this.resolvedDriver) return this.resolvedDriver
+
+    const remoteDriver = new RemoteResumeStorageDriver()
+    const remoteDocuments = await this.probeRemoteDocuments(remoteDriver)
+    if (remoteDocuments) {
+      this.resolvedDriver = new ProbedRemoteResumeStorageDriver(remoteDriver, remoteDocuments)
+      return this.resolvedDriver
+    }
+
+    console.warn('后端简历存储暂不可用，当前页面会话使用本地存储')
+    this.resolvedDriver = new LocalResumeStorageDriver()
+    await this.resolvedDriver.list(defaultContent)
+    return this.resolvedDriver
+  }
+
+  private async probeRemoteDocuments(remoteDriver: RemoteResumeStorageDriver): Promise<ResumeDocument[] | null> {
+    for (let attempt = 0; attempt <= AUTO_REMOTE_PROBE_RETRY_DELAYS.length; attempt += 1) {
+      try {
+        return await remoteDriver.list()
+      } catch (error) {
+        if (attempt >= AUTO_REMOTE_PROBE_RETRY_DELAYS.length) {
+          console.warn('后端简历存储探测失败，准备临时回退本地存储', error)
+          return null
+        }
+        await delay(AUTO_REMOTE_PROBE_RETRY_DELAYS[attempt] ?? 0)
+      }
+    }
+    return null
+  }
+
+  private requireResolvedDriver(): ResumeStorageDriver {
+    if (!this.resolvedDriver) {
+      throw new Error('简历存储尚未初始化')
+    }
+    return this.resolvedDriver
+  }
+}
+
+class ProbedRemoteResumeStorageDriver implements ResumeStorageDriver {
+  private initialDocuments: ResumeDocument[] | null
+
+  constructor(
+    private readonly remoteDriver: RemoteResumeStorageDriver,
+    initialDocuments: ResumeDocument[]
+  ) {
+    this.initialDocuments = initialDocuments
+  }
+
+  async list(): Promise<ResumeDocument[]> {
+    if (this.initialDocuments) {
+      const documents = this.initialDocuments
+      this.initialDocuments = null
+      return documents
+    }
+    return this.remoteDriver.list()
+  }
+
+  get(id: string): Promise<ResumeDocument> {
+    return this.remoteDriver.get(id)
+  }
+
+  create(payload: ResumeDocumentPayload): Promise<ResumeDocument> {
+    return this.remoteDriver.create(payload)
+  }
+
+  update(id: string, payload: ResumeDocumentPayload): Promise<ResumeDocument> {
+    return this.remoteDriver.update(id, payload)
+  }
+
+  delete(id: string): Promise<void> {
+    return this.remoteDriver.delete(id)
+  }
+
+  getCurrentId(): string | null {
+    return this.remoteDriver.getCurrentId()
+  }
+
+  setCurrentId(id: string): void {
+    this.remoteDriver.setCurrentId(id)
+  }
+}
+
 interface ResumeDocumentMeta {
   id: string
   title: string
@@ -266,6 +382,12 @@ function isResumeDocument(value: unknown): value is ResumeDocument {
   )
 }
 
+function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => window.setTimeout(resolve, ms))
+}
+
 export function createResumeStorageService(mode: ResumeStorageMode = getResumeStorageMode()): ResumeStorageDriver {
-  return mode === 'remote' ? new RemoteResumeStorageDriver() : new LocalResumeStorageDriver()
+  if (mode === 'remote') return new RemoteResumeStorageDriver()
+  if (mode === 'local') return new LocalResumeStorageDriver()
+  return new AutoResumeStorageDriver()
 }

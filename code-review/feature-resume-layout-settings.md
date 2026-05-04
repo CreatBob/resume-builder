@@ -20,26 +20,31 @@
 
 ## 审查过程已修正的问题
 
-1. [python-ai-backend/app/infrastructure/persistence/mysql/resume_document_repository.py:146] 审查中发现独立 MySQL 用户名/密码原先通过字符串拼接进入 SQLAlchemy URL，密码包含 `@`、`/`、`:` 等字符时可能破坏连接。已按 SQLAlchemy 2.0 官方文档改为 `URL.create()`，避免手工转义凭据。
-2. [python-ai-backend/app/infrastructure/persistence/mysql/resume_document_repository.py:86] 审查中发现更新和软删除依赖列定义的 `onupdate` 语义不够直观。已改为在 update/soft delete 语句中显式写入 `updated_at = CURRENT_TIMESTAMP`，与 Java 后端行为保持一致。
+1. [AGENTS.md:44] 工作区一度把新增/修改文件作者要求改为 `Bob`，与本轮仓库指令和 `.rules/*` 中固定 `jf` 的约束冲突。已恢复为 `jf`，避免后续提交违反作者标识规则。
+2. [.rules/global-rules.md:23] 工作区一度把验证命令例外放宽成泛化“验证命令”，缺少允许命令范围与不得新增脚本/临时代码的兜底说明。已恢复为仅允许项目既有验证命令，并补回禁止新增测试、编译脚本或临时验证代码的限制。
+3. [.rules/resume-storage-mandatory-rules.md:1] 多份简历存储已经形成稳定契约，已新增专项规则文档，沉淀 `local`、`remote`、`auto` 存储模式、双后端 `/api/resumes` 契约、MySQL 数据库归属、CORS 方法和审查口径。
 
 ## 审查依据
 
-- 已按 UTF-8 读取仓库规则：`.rules/global-rules.md`、`.rules/backend-mandatory-rules.md`、`.rules/python-ai-backend-mandatory-rules.md`、`.rules/harness-mcp-workflow-rules.md`、`.rules/code-conventions.md`、`.rules/code-review-rules.md`。
+- 已按 UTF-8 读取仓库规则：`AGENTS.md`、`.rules/global-rules.md`、`.rules/frontend-mandatory-rules.md`、`.rules/backend-mandatory-rules.md`、`.rules/spring-ai-backend-mandatory-rules.md`、`.rules/python-ai-backend-mandatory-rules.md`、`.rules/harness-mcp-workflow-rules.md`、`.rules/code-conventions.md`、`.rules/code-review-rules.md`。
 - 已读取 `code-review` skill 的 `review-standard-v2.md` 与 `project-review-focus.md`。
-- 已对照 Java 后端多份简历存储契约：`spring-ai-backend/src/main/java/com/resumebuilder/springaibackend/controller/ResumeDocumentController.java`、`ResumeDocumentService.java`、`ResumeDocumentMapper.xml`、`sql/resume_schema.sql`。
-- Python 后端新增链路保持 `api -> application -> domain <- infrastructure` 分层：路由只做 HTTP 适配，业务规则位于 application service，MySQL 访问位于 infrastructure repository。
-- SQLAlchemy 用法已通过 Context7 查询 SQLAlchemy 2.0 官方文档，确认 `URL.create()` 可安全承接未转义密码并传入 `create_engine()`。
-- 未发现新增测试代码；新增/修改的 Python 后端文件均保留 `author: jf` 标识，未发现 `author: ai` 等禁用标识。
-- 未发现后端运行代码中的手写 SQL 字符串；MySQL 操作通过 SQLAlchemy Core 表达式完成，未新增启动建表逻辑。
+- 已审查当前分支相对 `origin/feature/resume-layout-settings` 的最近三个提交，以及当前工作区未提交改动。
+- 前端新增多份简历存储链路保持 `src/api` 请求定义与 `src/services`/`src/stores` 编排边界。
+- Spring AI 后端新增简历文档接口保持 `controller -> service -> mapper -> mapper.xml` 边界，自定义 SQL 均位于 `spring-ai-backend/src/main/resources/mapper/ResumeDocumentMapper.xml`。
+- Python AI Backend 新增简历文档链路保持 `api -> application -> domain <- infrastructure` 分层，MySQL 访问位于 infrastructure repository。
+- 多份简历文档表固定落在 `sql/resume_schema.sql`，未发现应用启动自动建表行为。
 
 ## 验证结果
 
-- 一次性 Python 语法编译检查：通过，17 个变更文件均可 `compile()`。
+- `npm run type-check`：通过。
+- `npm run lint`：通过，Oxlint 与 ESLint 均为 0 warning / 0 error。
 - `git diff --check`：通过，未发现空白错误。
+- Python 变更文件一次性内存编译：通过，16 个文件均可 `compile()`。
+- Mapper SQL 注解检索：通过，未发现 `@Select(`、`@Update(`、`@Insert(`、`@Delete(`。
 - 禁用 AI 作者标识检索：通过，未发现 `author: ai`、`作者：ai`、`created by ai`。
 - 测试代码检索：通过，未发现本次新增测试文件。
-- 完整 FastAPI 应用导入验证：未执行通过；当前默认 Python 环境缺少 `fastapi`，且本仓库没有 `python-ai-backend/.venv`，因此未启动服务做接口联调。
+- 浏览器级 Playwright 验证：未执行。本轮未新增可视 UI 实现，主要是审查、规则沉淀与存储策略修补；页面真实交互仍建议在后续联调时用 Playwright 验证 `auto`、`remote`、`local` 三种存储模式。
+- 后端真实数据库联调：未执行。本轮未启动 MySQL / pgvector，也未写入业务数据；剩余风险是远程简历接口仍需在真实数据库环境确认 CRUD 与版本冲突提示。
 
 ## 汇总
 
@@ -62,7 +67,7 @@
 * 🟢 **轻微问题：** [ 0 ] 个
 
 #### 📝 综合评语
-> 本次 Python 后端同步多份简历存储功能的分层边界清晰，接口契约与 Java 后端保持一致，版本冲突、软删除、错误消息与 CORS 方法均已覆盖。审查中发现的 URL 凭据拼接和更新时间显式性问题已修正。剩余主要风险是当前环境缺少 FastAPI/项目虚拟环境，尚未完成真实服务启动和数据库联调。
+> 本次分支围绕多份简历存储做了前端、Spring AI 后端、Python AI Backend、SQL、Docker 与 README 的完整对齐，整体分层边界清晰，版本冲突与软删除语义完整。审查中发现的作者规则冲突和验证命令例外放宽问题已在提交前修正，并将多份简历存储契约沉淀为专项规则。剩余主要风险是尚未在真实数据库与浏览器环境做三种存储模式的端到端联调。
 
 #### ✅ 审查结论
 - [x] **Approve**

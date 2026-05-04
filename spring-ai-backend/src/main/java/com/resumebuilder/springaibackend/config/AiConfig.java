@@ -48,10 +48,10 @@ public class AiConfig {
             @Override
             public void addCorsMappings(CorsRegistry registry) {
                 registry.addMapping("/**")
-                        .allowedOrigins(appProperties.getCorsAllowedOrigins().toArray(String[]::new))
-                        .allowedMethods("GET", "POST", "OPTIONS")
-                        .allowedHeaders("*")
-                        .allowCredentials(true);
+                    .allowedOrigins(appProperties.getCorsAllowedOrigins().toArray(String[]::new))
+                    .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
+                    .allowedHeaders("*")
+                    .allowCredentials(true);
             }
         };
     }

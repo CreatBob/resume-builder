@@ -54,3 +54,6 @@ docs/requirements/
 
 # Workflow
 .workflow
+
+# Playwright
+.playwright-mcp
