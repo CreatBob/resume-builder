@@ -152,7 +152,7 @@ copy .env.docker.example .env.docker
 
 如果你直接执行 `docker compose --profile spring-ai up --build -d` 或 `docker compose --profile python-ai up --build -d`，Compose 会尝试启动数据库容器；宿主机已有 MySQL 或 PostgreSQL 时可能出现端口占用。此场景必须使用上面的启动脚本。
 
-使用 `start-docker-spring-ai.bat` 或 `start-docker-python-ai.bat` 启动时，脚本会在实际启动 Docker 数据库容器后自动执行初始化 SQL。执行顺序为 MySQL 建库、MySQL 会话表、pgvector 建库、pgvector RAG 表。这个初始化发生在 Docker 启动脚本中，不是 Spring AI 或 Python AI 应用启动自动建表，也不会绕过 `PgVectorStore.initializeSchema(false)` 的约束。
+使用 `start-docker-spring-ai.bat` 或 `start-docker-python-ai.bat` 启动时，脚本会在实际启动 Docker 数据库容器后自动执行初始化 SQL。执行顺序为 MySQL 建库、MySQL 会话表、MySQL 简历表、pgvector 建库、pgvector RAG 表。这个初始化发生在 Docker 启动脚本中，不是 Spring AI 或 Python AI 应用启动自动建表，也不会绕过 `PgVectorStore.initializeSchema(false)` 的约束。
 
 如果脚本检测到宿主机已有 MySQL 或 pgvector 并跳过数据库容器，则不会自动操作宿主机数据库。此时需要你手工执行以下命令。
 
@@ -161,6 +161,7 @@ PowerShell：
 ```powershell
 Get-Content -Raw sql\mysql_database_schema.sql | docker exec -i resume-builder-mysql mysql -uroot -proot
 Get-Content -Raw sql\interview_schema.sql | docker exec -i resume-builder-mysql mysql -uroot -proot resume-builder
+Get-Content -Raw sql\resume_schema.sql | docker exec -i resume-builder-mysql mysql -uroot -proot resume-builder
 Get-Content -Raw sql\create_pgvector_resume_builder_database.sql | docker exec -i resume-builder-pgvector psql -v ON_ERROR_STOP=1 -U pgvector -d postgres
 Get-Content -Raw sql\pgvector_rag_schema.sql | docker exec -i resume-builder-pgvector psql -U pgvector -d resume-builder
 ```
@@ -170,6 +171,7 @@ cmd / Git Bash：
 ```bash
 docker exec -i resume-builder-mysql mysql -uroot -proot < sql/mysql_database_schema.sql
 docker exec -i resume-builder-mysql mysql -uroot -proot resume-builder < sql/interview_schema.sql
+docker exec -i resume-builder-mysql mysql -uroot -proot resume-builder < sql/resume_schema.sql
 docker exec -i resume-builder-pgvector psql -v ON_ERROR_STOP=1 -U pgvector -d postgres < sql/create_pgvector_resume_builder_database.sql
 docker exec -i resume-builder-pgvector psql -U pgvector -d resume-builder < sql/pgvector_rag_schema.sql
 ```
@@ -210,6 +212,7 @@ docker compose up -d
 数据库初始化脚本统一放在仓库根目录 `sql/`：
 
 - `sql/interview_schema.sql`：MySQL 面试会话表和消息表，Spring / Python 后端共用。
+- `sql/resume_schema.sql`：MySQL 多份简历文档表，remote 简历存储使用。
 - `sql/pgvector_rag_schema.sql`：PostgreSQL + pgvector 的 `rag_document_chunks` 表，Spring / Python 后端共用。
 - `sql/mysql_database_schema.sql`：Docker 初始化 MySQL 数据库时使用，只负责创建 `resume-builder` 数据库。
 - `sql/create_pgvector_resume_builder_database.sql`：手工创建 pgvector 数据库时的辅助脚本，Docker Compose 默认已创建 `resume-builder`，通常不需要执行。
@@ -221,6 +224,7 @@ PowerShell：
 ```powershell
 Get-Content -Raw ..\sql\mysql_database_schema.sql | docker exec -i spring-ai-mysql mysql -uroot -proot
 Get-Content -Raw ..\sql\interview_schema.sql | docker exec -i spring-ai-mysql mysql -uroot -proot resume-builder
+Get-Content -Raw ..\sql\resume_schema.sql | docker exec -i spring-ai-mysql mysql -uroot -proot resume-builder
 Get-Content -Raw ..\sql\create_pgvector_resume_builder_database.sql | docker exec -i spring-ai-pgvector psql -v ON_ERROR_STOP=1 -U pgvector -d postgres
 Get-Content -Raw ..\sql\pgvector_rag_schema.sql | docker exec -i spring-ai-pgvector psql -U pgvector -d resume-builder
 ```
@@ -230,6 +234,7 @@ cmd / Git Bash：
 ```bash
 docker exec -i spring-ai-mysql mysql -uroot -proot < ../sql/mysql_database_schema.sql
 docker exec -i spring-ai-mysql mysql -uroot -proot resume-builder < ../sql/interview_schema.sql
+docker exec -i spring-ai-mysql mysql -uroot -proot resume-builder < ../sql/resume_schema.sql
 docker exec -i spring-ai-pgvector psql -v ON_ERROR_STOP=1 -U pgvector -d postgres < ../sql/create_pgvector_resume_builder_database.sql
 docker exec -i spring-ai-pgvector psql -U pgvector -d resume-builder < ../sql/pgvector_rag_schema.sql
 ```
@@ -328,6 +333,9 @@ mvn spring-boot:run
 ### 公共最小配置
 
 ```dotenv
+# 简历存储模式：frontend-only 使用 local；前后端完整部署如需后端保存多份简历，设置为 remote。
+VITE_RESUME_STORAGE_MODE=local
+
 # 后端端口，必须与 Vite 代理目标保持一致。
 SERVER_PORT=8999
 
@@ -720,6 +728,7 @@ resume-builder/
     docker-compose.yml           # MySQL + pgvector 本地容器
   sql/
     interview_schema.sql         # MySQL 面试会话初始化脚本
+    resume_schema.sql            # MySQL 多份简历初始化脚本
     pgvector_rag_schema.sql      # pgvector RAG 向量表初始化脚本
     create_pgvector_resume_builder_database.sql
   screenshots/                   # README 页面截图

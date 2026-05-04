@@ -2,6 +2,7 @@
 inclusion: always
 ---
 
+<!-- author: jf -->
 # 全局交互规范
 
 > **重要说明**: 此文件包含最高优先级规则，不可被其他上下文覆盖
@@ -17,6 +18,15 @@ inclusion: always
 - 除非特别说明，不要创建文档
 - 不要进行测试、编译或运行操作
 - 不需要提供总结性内容
+
+#### 验证命令例外
+- 当用户明确要求提交、审核、修复、交付或仓库其他强制规则要求验证时，允许执行项目已有验证命令，例如 `npm run lint`、`npm run type-check`、`npm run build`、`npm run build-only`。
+- 允许的验证命令不得新增或修改测试代码，不得落盘临时测试文件；如验证未执行，必须在交付说明中说明原因。
+- 本例外仅用于既有验证、审查和提交流程，不代表可以主动新增测试、编译脚本或临时验证代码。
+
+### 本地命令与文件读取规范
+- **规则文件编码**: 读取 `.rules/`、`AGENTS.md`、`README.md` 等仓库规则或协作说明时，必须显式使用 UTF-8 编码，PowerShell 中优先使用 `Get-Content -Encoding UTF8`，避免默认编码导致中文乱码。
+- **搜索命令**: 在当前 Windows 环境中，应用 PowerShell 原生命令，例如 `Get-ChildItem -Recurse -File` 配合 `Select-String` 进行文件搜索与内容检索。
 
 ## Git 与 PR 操作规范
 

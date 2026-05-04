@@ -1,5 +1,12 @@
 import { defineStore } from 'pinia'
-import { reactive, ref, watch } from 'vue'
+import { computed, reactive, ref, watch } from 'vue'
+import { getResumeStorageMode } from '@/config/resumeStorageMode'
+import {
+  ResumeStorageConflictError,
+  createResumeStorageService,
+  type ResumeData,
+  type ResumeDocument,
+} from '@/services/resumeStorageService'
 import { normalizeResumeTemplateKey, type ResumeTemplateKey } from '@/templates/resume'
 // author: jf
 
@@ -291,6 +298,13 @@ export const useResumeStore = defineStore('resume', () => {
   const lastSavedAt = ref<number | null>(null)
   const lastSaveMode = ref<'auto' | 'manual' | null>(null)
   const isSaving = ref(false)
+  const isWorkspaceReady = ref(false)
+  const workspaceError = ref('')
+  const currentResumeId = ref('')
+  const resumeDocuments = ref<ResumeDocument[]>([])
+  const storageMode = getResumeStorageMode()
+  const resumeStorage = createResumeStorageService(storageMode)
+  let isApplyingDocument = false
 
   function toggleModule(key: string) {
     const mod = modules.find((m) => m.key === key)
@@ -481,7 +495,6 @@ export const useResumeStore = defineStore('resume', () => {
     if (idx > -1) basicInfo.customItems.splice(idx, 1)
   }
 
-  const STORAGE_KEY = 'resume-builder-data'
   const AUTO_SAVE_DELAY_MS = 500
   const SAVE_LOADING_MIN_MS = 900
 
@@ -497,7 +510,11 @@ export const useResumeStore = defineStore('resume', () => {
   }
 
   function exportResumeData(): string {
-    return JSON.stringify({
+    return JSON.stringify(snapshotResumeData(), null, 2)
+  }
+
+  function snapshotResumeData(): ResumeData {
+    return {
       modules: modules.map((m) => ({ ...m })),
       selectedTemplateKey: selectedTemplateKey.value,
       layoutSettings: { ...layoutSettings },
@@ -508,45 +525,53 @@ export const useResumeStore = defineStore('resume', () => {
       projectList: projectList.map((p) => ({ ...p })),
       awardList: awardList.map((a) => ({ ...a })),
       selfIntro: selfIntro.value,
-    }, null, 2)
+    }
   }
 
-  function saveToStorage(mode: 'auto' | 'manual' = 'manual') {
+  async function saveToStorage(mode: 'auto' | 'manual' = 'manual'): Promise<boolean> {
+    if (!isWorkspaceReady.value || isApplyingDocument) return false
     if (mode === 'manual' && saveTimer) {
       clearTimeout(saveTimer)
       saveTimer = null
     }
+
+    const currentDoc = currentResume.value
+    if (!currentDoc) return false
+
     markSavingState()
-    const data = {
-      modules: modules.map((m) => ({ ...m })),
-      selectedTemplateKey: selectedTemplateKey.value,
-      layoutSettings: { ...layoutSettings },
-      basicInfo: { ...basicInfo },
-      educationList: educationList.map((e) => ({ ...e })),
-      skills: skills.value,
-      workList: workList.map((w) => ({ ...w })),
-      projectList: projectList.map((p) => ({ ...p })),
-      awardList: awardList.map((a) => ({ ...a })),
-      selfIntro: selfIntro.value,
-    }
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(data))
-    nextAutoSaveAt.value = null
-    lastSavedAt.value = Date.now()
-    lastSaveMode.value = mode
-  }
 
-  function importResumeData(raw: string) {
-    JSON.parse(raw)
-    localStorage.setItem(STORAGE_KEY, raw)
-    loadFromStorage()
-    saveToStorage('manual')
-  }
-
-  function loadFromStorage() {
-    const raw = localStorage.getItem(STORAGE_KEY)
-    if (!raw) return
     try {
-      const data = JSON.parse(raw)
+      const savedDoc = await resumeStorage.update(currentDoc.id, {
+        title: currentDoc.title,
+        content: snapshotResumeData(),
+        version: currentDoc.version,
+      })
+      upsertResumeDocument(savedDoc)
+      currentResumeId.value = savedDoc.id
+      resumeStorage.setCurrentId(savedDoc.id)
+      workspaceError.value = ''
+      nextAutoSaveAt.value = null
+      lastSavedAt.value = Date.now()
+      lastSaveMode.value = mode
+      return true
+    } catch (error) {
+      workspaceError.value = error instanceof ResumeStorageConflictError
+        ? error.message
+        : storageMode === 'remote'
+          ? '后端简历服务不可用，当前内容未保存到远程'
+          : '简历保存失败'
+      return false
+    }
+  }
+
+  async function importResumeData(raw: string) {
+    const data = JSON.parse(raw)
+    applyResumeData(data)
+    await saveToStorage('manual')
+  }
+
+  function applyResumeData(data: ResumeData) {
+    try {
       if (data.modules) {
         const byKey = new Map<string, ModuleConfig>()
         ;(data.modules as ModuleConfig[]).forEach((m) => {
@@ -587,26 +612,194 @@ export const useResumeStore = defineStore('resume', () => {
           customItems: normalizeCustomBasicItems(incomingBasicInfo.customItems),
         })
       }
-      if (data.educationList) {
-        educationList.splice(0, educationList.length, ...data.educationList)
+      if (Array.isArray(data.educationList)) {
+        educationList.splice(0, educationList.length, ...(data.educationList as EducationEntry[]))
       }
       if (data.skills !== undefined) skills.value = data.skills
-      if (data.workList) {
-        workList.splice(0, workList.length, ...data.workList)
+      if (Array.isArray(data.workList)) {
+        workList.splice(0, workList.length, ...(data.workList as WorkEntry[]))
       }
-      if (data.projectList) {
-        projectList.splice(0, projectList.length, ...data.projectList)
+      if (Array.isArray(data.projectList)) {
+        projectList.splice(0, projectList.length, ...(data.projectList as ProjectEntry[]))
       }
-      if (data.awardList) {
-        awardList.splice(0, awardList.length, ...data.awardList)
+      if (Array.isArray(data.awardList)) {
+        awardList.splice(0, awardList.length, ...(data.awardList as AwardEntry[]))
       }
       if (data.selfIntro !== undefined) selfIntro.value = data.selfIntro
     } catch (e) {
-      console.warn('Failed to load resume data from localStorage', e)
+      console.warn('Failed to load resume data', e)
     }
   }
 
-  loadFromStorage()
+  async function initializeWorkspace() {
+    isWorkspaceReady.value = false
+    workspaceError.value = ''
+    try {
+      const docs = await resumeStorage.list(snapshotResumeData())
+      resumeDocuments.value = docs
+      let selectedId = resumeStorage.getCurrentId() ?? docs[0]?.id ?? ''
+      if (!docs.some((doc) => doc.id === selectedId)) {
+        selectedId = docs[0]?.id ?? ''
+      }
+
+      if (!selectedId) {
+        const created = await resumeStorage.create({
+          title: '我的简历',
+          content: snapshotResumeData(),
+        })
+        resumeDocuments.value = [created]
+        selectedId = created.id
+      }
+
+      const selectedDoc = await resumeStorage.get(selectedId)
+      upsertResumeDocument(selectedDoc)
+      currentResumeId.value = selectedDoc.id
+      resumeStorage.setCurrentId(selectedDoc.id)
+      isApplyingDocument = true
+      applyResumeData(selectedDoc.content)
+      isApplyingDocument = false
+      isWorkspaceReady.value = true
+    } catch (error) {
+      isApplyingDocument = false
+      workspaceError.value = storageMode === 'remote'
+        ? '后端简历服务不可用，无法加载远程简历'
+        : error instanceof Error ? error.message : '简历加载失败'
+      isWorkspaceReady.value = storageMode === 'local'
+    }
+  }
+
+  async function createResume(title = '未命名简历') {
+    const saved = await saveToStorage('manual')
+    if (!saved) return
+    const created = await resumeStorage.create({
+      title,
+      content: createEmptyResumeData(),
+    })
+    upsertResumeDocument(created)
+    await switchResume(created.id, false)
+  }
+
+  async function switchResume(id: string, shouldSaveCurrent = true) {
+    if (id === currentResumeId.value) return
+    if (shouldSaveCurrent) {
+      const saved = await saveToStorage('manual')
+      if (!saved) return
+    }
+    const doc = await resumeStorage.get(id)
+    upsertResumeDocument(doc)
+    currentResumeId.value = doc.id
+    resumeStorage.setCurrentId(doc.id)
+    isApplyingDocument = true
+    applyResumeData(doc.content)
+    isApplyingDocument = false
+  }
+
+  async function renameCurrentResume(title: string) {
+    const currentDoc = currentResume.value
+    if (!currentDoc) return
+    const savedDoc = await resumeStorage.update(currentDoc.id, {
+      title,
+      content: snapshotResumeData(),
+      version: currentDoc.version,
+    })
+    upsertResumeDocument(savedDoc)
+    currentResumeId.value = savedDoc.id
+  }
+
+  async function deleteCurrentResume() {
+    const currentDoc = currentResume.value
+    if (!currentDoc || resumeDocuments.value.length <= 1) return
+    await resumeStorage.delete(currentDoc.id)
+    resumeDocuments.value = resumeDocuments.value.filter((doc) => doc.id !== currentDoc.id)
+    const nextDoc = resumeDocuments.value[0]
+    if (nextDoc) {
+      await switchResume(nextDoc.id, false)
+    }
+  }
+
+  function createEmptyResumeData(): ResumeData {
+    return {
+      modules: [
+        { key: 'basicInfo', label: '基本信息', icon: '👤', visible: true },
+        { key: 'education', label: '教育经历', icon: '🎓', visible: true },
+        { key: 'skills', label: '专业技能', icon: '⚡', visible: true },
+        { key: 'workExperience', label: '工作经历', icon: '💼', visible: true },
+        { key: 'projectExperience', label: '项目经历', icon: '📁', visible: true },
+        { key: 'awards', label: '荣誉奖项', icon: '🏆', visible: false },
+        { key: 'selfIntro', label: '个人简介', icon: '📝', visible: false },
+      ],
+      selectedTemplateKey: 'default',
+      layoutSettings: { ...DEFAULT_RESUME_LAYOUT_SETTINGS },
+      basicInfo: {
+        name: '',
+        phone: '',
+        email: '',
+        age: '',
+        gender: '',
+        location: '',
+        jobTitle: '',
+        educationLevel: '',
+        avatar: '',
+        workYears: '',
+        currentStatus: '',
+        expectedLocation: '',
+        expectedSalary: '',
+        website: createEmptyBasicLink(),
+        wechat: '',
+        currentCity: '',
+        github: createEmptyBasicLink(),
+        blog: createEmptyBasicLink(),
+        customItems: [],
+      },
+      educationList: [{
+        id: genId(),
+        school: '',
+        college: '',
+        major: '',
+        degree: '',
+        startDate: '',
+        endDate: '',
+        gpa: '',
+        description: '',
+        type: '',
+        location: '',
+      }],
+      skills: '',
+      workList: [{
+        id: genId(),
+        company: '',
+        department: '',
+        position: '',
+        startDate: '',
+        endDate: '',
+        location: '',
+        description: '',
+      }],
+      projectList: [{
+        id: genId(),
+        name: '',
+        role: '',
+        startDate: '',
+        endDate: '',
+        link: '',
+        introduction: '',
+        mainWork: '',
+      }],
+      awardList: [],
+      selfIntro: '',
+    }
+  }
+
+  function upsertResumeDocument(doc: ResumeDocument) {
+    const index = resumeDocuments.value.findIndex((item) => item.id === doc.id)
+    if (index >= 0) {
+      resumeDocuments.value[index] = doc
+    } else {
+      resumeDocuments.value.unshift(doc)
+    }
+  }
+
+  const currentResume = computed(() => resumeDocuments.value.find((doc) => doc.id === currentResumeId.value) ?? null)
 
   let saveTimer: ReturnType<typeof setTimeout> | null = null
   watch(
@@ -623,18 +816,27 @@ export const useResumeStore = defineStore('resume', () => {
       () => JSON.stringify(modules),
     ],
     () => {
+      if (!isWorkspaceReady.value || isApplyingDocument) return
       if (saveTimer) clearTimeout(saveTimer)
       nextAutoSaveAt.value = Date.now() + AUTO_SAVE_DELAY_MS
       saveTimer = setTimeout(() => {
         saveTimer = null
-        saveToStorage('auto')
+        void saveToStorage('auto')
       }, AUTO_SAVE_DELAY_MS)
     },
     { deep: true }
   )
 
+  void initializeWorkspace()
+
   return {
     modules,
+    storageMode,
+    isWorkspaceReady,
+    workspaceError,
+    resumeDocuments,
+    currentResume,
+    currentResumeId,
     selectedTemplateKey,
     layoutSettings,
     basicInfo,
@@ -670,6 +872,11 @@ export const useResumeStore = defineStore('resume', () => {
     exportResumeData,
     importResumeData,
     saveToStorage,
+    initializeWorkspace,
+    createResume,
+    switchResume,
+    renameCurrentResume,
+    deleteCurrentResume,
     autoSaveDelayMs: AUTO_SAVE_DELAY_MS,
     nextAutoSaveAt,
     lastSavedAt,

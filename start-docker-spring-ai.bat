@@ -75,7 +75,7 @@ echo.
 echo [INFO] Spring AI Docker stack started.
 echo [INFO] Frontend: http://localhost:%FRONTEND_PORT%
 echo [INFO] Health: http://localhost:%BACKEND_PORT%/health
-echo [INFO] If a database container was skipped, make sure the host database has run sql/interview_schema.sql and sql/pgvector_rag_schema.sql.
+echo [INFO] If a database container was skipped, make sure the host database has run sql/interview_schema.sql, sql/resume_schema.sql and sql/pgvector_rag_schema.sql.
 echo.
 docker compose %COMPOSE_ENV% ps
 echo.
@@ -201,10 +201,16 @@ if not exist "sql\interview_schema.sql" (
   echo [ERROR] Missing sql\interview_schema.sql.
   exit /b 1
 )
-echo [INFO] Initializing MySQL database and interview tables.
+if not exist "sql\resume_schema.sql" (
+  echo [ERROR] Missing sql\resume_schema.sql.
+  exit /b 1
+)
+echo [INFO] Initializing MySQL database, interview tables and resume tables.
 docker exec -i resume-builder-mysql mysql -uroot "-p%MYSQL_ROOT_PASSWORD%" < sql\mysql_database_schema.sql
 if errorlevel 1 exit /b 1
 docker exec -i resume-builder-mysql mysql -uroot "-p%MYSQL_ROOT_PASSWORD%" "%MYSQL_DATABASE%" < sql\interview_schema.sql
+if errorlevel 1 exit /b 1
+docker exec -i resume-builder-mysql mysql -uroot "-p%MYSQL_ROOT_PASSWORD%" "%MYSQL_DATABASE%" < sql\resume_schema.sql
 if errorlevel 1 exit /b 1
 exit /b 0
 

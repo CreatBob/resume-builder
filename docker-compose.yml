@@ -62,6 +62,7 @@ services:
       args:
         NODE_IMAGE: "${NODE_IMAGE:-node:22-alpine}"
         NGINX_IMAGE: "${NGINX_IMAGE:-nginx:alpine}"
+        VITE_RESUME_STORAGE_MODE: "${VITE_RESUME_STORAGE_MODE:-local}"
     ports:
       - "${FRONTEND_PORT:-3000}:80"
     restart: unless-stopped

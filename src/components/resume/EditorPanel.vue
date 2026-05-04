@@ -1,5 +1,5 @@
 ﻿<script setup lang="ts">
-import { computed, onMounted, onUnmounted, reactive, ref, type Component } from 'vue'
+import { computed, onMounted, onUnmounted, reactive, ref, watch, type Component } from 'vue'
 import { useResumeStore } from '@/stores/resume'
 import BasicInfoEditor from './editors/BasicInfoEditor.vue'
 import EducationEditor from './editors/EducationEditor.vue'
@@ -20,6 +20,7 @@ const searchValue = ref('')
 const showAiPanel = ref(false)
 const jsonImportInputRef = ref<HTMLInputElement | null>(null)
 const nowTick = ref(Date.now())
+const renameValue = ref('')
 
 function handleAiClick() {
   showAiPanel.value = true
@@ -123,12 +124,38 @@ const completionPercent = computed(() => {
   return Math.round((total / enabledModules.length) * 100)
 })
 
-function handleSave() {
-  store.saveToStorage()
+async function handleSave() {
+  const saved = await store.saveToStorage()
+  if (!saved) return
   showSaved.value = true
   setTimeout(() => {
     showSaved.value = false
   }, 1800)
+}
+
+async function handleCreateResume() {
+  await store.createResume()
+  renameValue.value = store.currentResume?.title ?? ''
+}
+
+async function handleSwitchResume(event: Event) {
+  const select = event.target as HTMLSelectElement
+  await store.switchResume(select.value)
+  renameValue.value = store.currentResume?.title ?? ''
+}
+
+async function handleRenameResume() {
+  const title = renameValue.value.trim()
+  if (!title) return
+  await store.renameCurrentResume(title)
+}
+
+async function handleDeleteResume() {
+  if (store.resumeDocuments.length <= 1) return
+  const confirmed = window.confirm('确认删除当前简历？')
+  if (!confirmed) return
+  await store.deleteCurrentResume()
+  renameValue.value = store.currentResume?.title ?? ''
 }
 
 function triggerJsonImport() {
@@ -142,7 +169,7 @@ async function handleImportJson(event: Event) {
 
   const raw = await file.text()
   input.value = ''
-  store.importResumeData(raw)
+  await store.importResumeData(raw)
 }
 
 const isAutoSavePending = computed(() => store.nextAutoSaveAt !== null)
@@ -170,6 +197,14 @@ const autoSaveChipText = computed(() => {
   return `${Math.floor(elapsedMs / 60_000)}分钟前${label}`
 })
 
+watch(
+  () => store.currentResume?.title,
+  (title) => {
+    renameValue.value = title ?? ''
+  },
+  { immediate: true }
+)
+
 function toggleExpand(key: string) {
   expanded[key] = !expanded[key]
 }
@@ -177,6 +212,7 @@ function toggleExpand(key: string) {
 let autoSaveTicker: ReturnType<typeof setInterval> | null = null
 
 onMounted(() => {
+  renameValue.value = store.currentResume?.title ?? ''
   autoSaveTicker = setInterval(() => {
     nowTick.value = Date.now()
   }, 200)
@@ -211,6 +247,45 @@ onUnmounted(() => {
     </div>
 
     <EditorFloatingTools @open-ai="handleAiClick" />
+
+    <section class="resume-switcher">
+      <div class="resume-switcher-main">
+        <label class="resume-select-label" for="resume-document-select">当前简历</label>
+        <select
+          id="resume-document-select"
+          class="resume-select"
+          :value="store.currentResumeId"
+          :disabled="!store.isWorkspaceReady"
+          @change="handleSwitchResume"
+        >
+          <option v-for="doc in store.resumeDocuments" :key="doc.id" :value="doc.id">
+            {{ doc.title }}
+          </option>
+        </select>
+      </div>
+      <input
+        v-model="renameValue"
+        class="resume-title-input"
+        :disabled="!store.isWorkspaceReady"
+        placeholder="简历名称"
+        @blur="handleRenameResume"
+        @keyup.enter="handleRenameResume"
+      />
+      <div class="resume-switcher-actions">
+        <button class="btn-resume-action" type="button" :disabled="!store.isWorkspaceReady" @click="handleCreateResume">
+          新建
+        </button>
+        <button
+          class="btn-resume-action btn-resume-danger"
+          type="button"
+          :disabled="!store.isWorkspaceReady || store.resumeDocuments.length <= 1"
+          @click="handleDeleteResume"
+        >
+          删除
+        </button>
+      </div>
+    </section>
+    <p v-if="store.workspaceError" class="resume-storage-error">{{ store.workspaceError }}</p>
 
     <div class="stats-row">
       <div class="stat-card">
@@ -294,6 +369,87 @@ onUnmounted(() => {
   outline: none;
   border-color: #d97745;
   box-shadow: 0 0 0 3px rgba(217, 119, 69, 0.14);
+}
+
+.resume-switcher {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: end;
+  padding: 12px;
+  border: 1px solid #e9ded0;
+  border-radius: 10px;
+  background: #fffaf5;
+}
+
+.resume-switcher-main {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.resume-select-label {
+  color: #8a7461;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.resume-select,
+.resume-title-input {
+  width: 100%;
+  height: 36px;
+  border: 1px solid #ddcfbf;
+  border-radius: 8px;
+  background: #fff;
+  color: #2d2521;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 0 10px;
+}
+
+.resume-select:focus,
+.resume-title-input:focus {
+  outline: none;
+  border-color: #d97745;
+  box-shadow: 0 0 0 3px rgba(217, 119, 69, 0.12);
+}
+
+.resume-switcher-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-resume-action {
+  height: 36px;
+  padding: 0 12px;
+  border-radius: 8px;
+  border: 1px solid #ddcfbf;
+  background: #fff;
+  color: #2d2521;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.btn-resume-action:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.btn-resume-danger {
+  color: #a34123;
+}
+
+.resume-storage-error {
+  margin-top: -6px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: #fff0e8;
+  color: #a34123;
+  font-size: 12px;
+  font-weight: 600;
 }
 
 .chip {
@@ -536,6 +692,11 @@ onUnmounted(() => {
   .stats-row {
     grid-template-columns: 1fr;
     gap: 8px;
+  }
+
+  .resume-switcher {
+    grid-template-columns: 1fr;
+    align-items: stretch;
   }
 
   .info-editor-header {

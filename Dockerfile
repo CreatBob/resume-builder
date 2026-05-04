@@ -1,12 +1,17 @@
 ARG NODE_IMAGE=node:22-alpine
 ARG NGINX_IMAGE=nginx:alpine
+ARG VITE_RESUME_STORAGE_MODE=local
 
 # author: jf
 
 # 构建阶段只生成前端静态资源。
 FROM ${NODE_IMAGE} AS build
 
+ARG VITE_RESUME_STORAGE_MODE=local
+
 WORKDIR /app
+
+ENV VITE_RESUME_STORAGE_MODE=${VITE_RESUME_STORAGE_MODE}
 
 # 先复制依赖清单，提升 Docker 层缓存命中率。
 COPY package.json package-lock.json ./
