@@ -7,6 +7,7 @@ import type {
   WorkEntry,
 } from '@/stores/resume'
 import { getModuleOutputRules, SYSTEM_PROMPT } from './prompts'
+import { awardContentHtml, awardHasContent } from '@/utils/awardContent'
 
 function formatBasicLink(label: string, link: { text: string; url: string }): string {
   const text = link.text.trim()
@@ -100,11 +101,12 @@ function formatProjects(list: ProjectEntry[]): string {
 
 function formatAwards(list: AwardEntry[]): string {
   return list
+    .filter((a) => awardHasContent(a))
     .map((a) => {
       const parts: string[] = []
-      if (a.name) parts.push(`奖项名称：${a.name}`)
+      const content = stripHtml(awardContentHtml(a))
+      if (content) parts.push(`奖项名称：${content}`)
       if (a.date) parts.push(`获奖时间：${a.date}`)
-      if (a.description) parts.push(`描述：${stripHtml(a.description)}`)
       return parts.join('\n')
     })
     .join('\n---\n')

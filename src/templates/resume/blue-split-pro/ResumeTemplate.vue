@@ -3,7 +3,16 @@
 import { computed } from 'vue'
 import { useResumeTemplateData } from '../../shared/useResumeTemplateData'
 
-const { store, hasAnyContent, profileLinks, customBasicMeta, moduleOrderStyle, layoutStyle } = useResumeTemplateData()
+const {
+  store,
+  hasAnyContent,
+  profileLinks,
+  customBasicMeta,
+  moduleOrderStyle,
+  layoutStyle,
+  awardContentHtml,
+  awardHasContent,
+} = useResumeTemplateData()
 
 const contactItems = computed(() => {
   const items = [
@@ -157,17 +166,16 @@ function subLine(values: Array<string | undefined>): string {
       </section>
 
       <section
-        v-if="store.isModuleVisible('awards') && store.awardList.some((a) => a.name)"
+        v-if="store.isModuleVisible('awards') && store.awardList.some((a) => awardHasContent(a))"
         class="resume-section"
         :style="moduleOrderStyle('awards')"
       >
         <h2 class="section-title">鑽ｈ獕濂栭」</h2>
-        <article v-for="award in store.awardList" :key="award.id" class="entry" v-show="award.name">
+        <article v-for="award in store.awardList" :key="award.id" class="entry" v-show="awardHasContent(award)">
           <div class="entry-head">
-            <p class="entry-main"><strong>{{ award.name }}</strong></p>
+            <div class="entry-rich" v-html="awardContentHtml(award)"></div>
             <span class="entry-date">{{ award.date }}</span>
           </div>
-          <div v-if="award.description" class="entry-rich" v-html="award.description"></div>
         </article>
       </section>
 

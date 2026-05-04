@@ -11,6 +11,7 @@ import SelfIntroEditor from './editors/SelfIntroEditor.vue'
 import AiOptimizePanel from '@/components/ai/AiOptimizePanel.vue'
 import EditorFloatingTools from './EditorFloatingTools.vue'
 import EditorModuleList from './EditorModuleList.vue'
+import { awardHasContent } from '@/utils/awardContent'
 // author: jf
 
 const store = useResumeStore()
@@ -101,8 +102,8 @@ const moduleCompletion = computed<Record<string, number>>(() => {
     ? scoreByFilled([firstProject.name, firstProject.role, firstProject.startDate, firstProject.mainWork])
     : 0
 
-  const firstAward = store.awardList.find((a) => [a.name, a.date].some((value) => value?.trim()))
-  const awardsScore = firstAward ? scoreByFilled([firstAward.name, firstAward.date]) : 0
+  const firstAward = store.awardList.find((a) => awardHasContent(a))
+  const awardsScore = firstAward ? scoreByFilled([firstAward.description || firstAward.name, firstAward.date]) : 0
 
   return {
     basicInfo: basicInfoScore,

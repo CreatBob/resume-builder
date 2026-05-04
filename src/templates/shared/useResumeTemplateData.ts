@@ -3,6 +3,7 @@ import { computed, type CSSProperties } from 'vue'
 import { useResumeStore } from '@/stores/resume'
 import type { MetaIconKey } from './metaIcons'
 import { toHref } from './metaIcons'
+import { awardContentHtml, awardHasContent } from '@/utils/awardContent'
 
 export function useResumeTemplateData() {
   const store = useResumeStore()
@@ -33,7 +34,7 @@ export function useResumeTemplateData() {
       Boolean(store.skills) ||
       store.workList.some((w) => w.company) ||
       store.projectList.some((p) => p.name) ||
-      store.awardList.some((a) => a.name) ||
+      store.awardList.some((a) => awardHasContent(a)) ||
       Boolean(store.selfIntro)
   )
 
@@ -162,5 +163,7 @@ export function useResumeTemplateData() {
     customBasicMeta,
     moduleOrderStyle,
     layoutStyle,
+    awardContentHtml,
+    awardHasContent,
   }
 }

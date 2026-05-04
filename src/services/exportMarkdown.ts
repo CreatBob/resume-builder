@@ -1,5 +1,6 @@
 // author: jf
 import type { useResumeStore } from '@/stores/resume'
+import { awardContentHtml, awardHasContent } from '@/utils/awardContent'
 
 type ResumeStore = ReturnType<typeof useResumeStore>
 
@@ -212,14 +213,12 @@ export function generateResumeMarkdown(store: ResumeStore): string {
       }
 
       case 'awards': {
-        const entries = store.awardList.filter((a) => a.name || a.date)
+        const entries = store.awardList.filter((a) => awardHasContent(a))
         if (entries.length === 0) break
         lines.push('## 荣誉奖项', '')
         for (const a of entries) {
-          const header = [a.name, a.date].filter(Boolean).join(' — ')
-          lines.push(`- **${header}**`)
-          const desc = htmlToMarkdown(a.description)
-          if (desc) lines.push(`  ${desc}`)
+          const content = htmlToMarkdown(awardContentHtml(a))
+          lines.push(`- ${[content, a.date].filter(Boolean).join(' — ')}`)
         }
         lines.push('')
         break

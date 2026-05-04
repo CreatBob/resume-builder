@@ -3,7 +3,17 @@ import { computed } from 'vue'
 import { iconPaths, iconViewBox, isFilledIcon, toHref, type MetaIconKey } from '../../shared/metaIcons'
 import { useResumeTemplateData } from '../../shared/useResumeTemplateData'
 
-const { store, hasAnyContent, lineOneMeta, lineTwoMeta, lineThreeMeta, moduleOrderStyle, layoutStyle } = useResumeTemplateData()
+const {
+  store,
+  hasAnyContent,
+  lineOneMeta,
+  lineTwoMeta,
+  lineThreeMeta,
+  moduleOrderStyle,
+  layoutStyle,
+  awardContentHtml,
+  awardHasContent,
+} = useResumeTemplateData()
 
 const sectionIconMap: Record<'education' | 'skills' | 'workExperience' | 'projectExperience' | 'awards' | 'selfIntro', MetaIconKey> = {
   education: 'education',
@@ -267,7 +277,7 @@ function projectHref(link: string): string {
       </section>
 
       <section
-        v-if="store.isModuleVisible('awards') && store.awardList.some((a) => a.name)"
+        v-if="store.isModuleVisible('awards') && store.awardList.some((a) => awardHasContent(a))"
         class="resume-section"
         :style="moduleOrderStyle('awards')"
       >
@@ -286,14 +296,11 @@ function projectHref(link: string): string {
           <span class="section-divider"></span>
         </h2>
         <div class="section-card">
-          <article v-for="award in store.awardList" :key="award.id" class="entry" v-show="award.name">
+          <article v-for="award in store.awardList" :key="award.id" class="entry" v-show="awardHasContent(award)">
             <div class="entry-head">
-              <p class="entry-title">
-                <strong>{{ award.name }}</strong>
-              </p>
+              <div class="entry-rich" v-html="awardContentHtml(award)"></div>
               <span class="entry-date">{{ award.date }}</span>
             </div>
-            <div v-if="award.description" class="entry-rich" v-html="award.description"></div>
           </article>
         </div>
       </section>

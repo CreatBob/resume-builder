@@ -4,7 +4,17 @@ import { computed } from 'vue'
 import { toHref } from '../../shared/metaIcons'
 import { useResumeTemplateData } from '../../shared/useResumeTemplateData'
 
-const { store, hasAnyContent, simpleContactMeta, profileLinks, customBasicMeta, moduleOrderStyle, layoutStyle } =
+const {
+  store,
+  hasAnyContent,
+  simpleContactMeta,
+  profileLinks,
+  customBasicMeta,
+  moduleOrderStyle,
+  layoutStyle,
+  awardContentHtml,
+  awardHasContent,
+} =
   useResumeTemplateData()
 
 const moduleLabelMap = computed(() =>
@@ -185,7 +195,7 @@ function projectHref(link: string): string {
       </section>
 
       <section
-        v-if="store.isModuleVisible('awards') && store.awardList.some((entry) => entry.name)"
+        v-if="store.isModuleVisible('awards') && store.awardList.some((entry) => awardHasContent(entry))"
         class="resume-section"
         :style="moduleOrderStyle('awards')"
       >
@@ -193,12 +203,11 @@ function projectHref(link: string): string {
           <span>{{ sectionTitle('awards') }}</span>
         </h2>
 
-        <article v-for="award in store.awardList" :key="award.id" v-show="award.name" class="entry">
+        <article v-for="award in store.awardList" :key="award.id" v-show="awardHasContent(award)" class="entry">
           <div class="entry-head">
-            <p class="entry-main"><strong>{{ award.name }}</strong></p>
+            <div class="entry-rich" v-html="awardContentHtml(award)"></div>
             <span class="entry-date">{{ award.date }}</span>
           </div>
-          <div v-if="award.description" class="entry-rich" v-html="award.description"></div>
         </article>
       </section>
 
