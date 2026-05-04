@@ -1,5 +1,7 @@
-<!-- author: Bob -->
+﻿<!-- author: Bob -->
 # AI 执行规范
+## 仓库规则文档编码与读取要求（强制）
+1. 读取 `AGENTS.md`、`.rules/*.md`、`README.md` 与相关协作文档时，必须显式按 `UTF-8` 读取；
 
 ## `.rules` 规则文档引用（强制）
 

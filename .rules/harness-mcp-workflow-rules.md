@@ -1,4 +1,4 @@
-<!-- author: Bob -->
+﻿<!-- author: Bob -->
 # Resume Builder Harness 与 MCP 工作流规则
 
 ## 1. 规则定位

@@ -1,4 +1,4 @@
-<!-- author: jf -->
+﻿<!-- author: jf -->
 # Spring AI Backend 强制规则
 
 ## 1. 规则定位

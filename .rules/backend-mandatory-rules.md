@@ -1,4 +1,4 @@
-<!-- author: Bob -->
+﻿<!-- author: Bob -->
 # Resume Builder 后端强制规则
 
 ## 1. 规则定位

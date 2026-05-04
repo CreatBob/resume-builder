@@ -1,3 +1,15 @@
+; author: Bob
+
+[AGENTS.md]
+charset = utf-8-bom
+end_of_line = lf
+insert_final_newline = true
+
+[.rules/*.md]
+charset = utf-8-bom
+end_of_line = lf
+insert_final_newline = true
+
 [*.{js,jsx,mjs,cjs,ts,tsx,mts,cts,vue,css,scss,sass,less,styl}]
 charset = utf-8
 indent_size = 2
