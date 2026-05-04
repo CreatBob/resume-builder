@@ -13,24 +13,6 @@ const sidebarCollapsed = ref(false)
 const activeMenu = ref<PrimaryMenuKey>('resume-editor')
 const resumeStorageMode = getResumeStorageMode()
 
-const menuMeta: Record<PrimaryMenuKey, { title: string; description: string; badge: string }> = {
-  'resume-editor': {
-    title: '简历编辑工作台',
-    description: '结构化填写、模块控制、模板预览和导出集中在同一个编辑流里。',
-    badge: '编辑 / 预览',
-  },
-  'ai-interviewer': {
-    title: 'AI 面试工作台',
-    description: '围绕当前简历进行模拟问答、语音输入、历史会话和评分复盘。',
-    badge: '面试 / 反馈',
-  },
-  'knowledge-base': {
-    title: '知识库入库工作台',
-    description: '上传项目资料、图片和文档，沉淀为 RAG 与面试召回上下文。',
-    badge: 'RAG / 上传',
-  },
-}
-
 const primaryMenus: PrimaryMenuItem[] = [
   {
     key: 'resume-editor',
@@ -55,7 +37,6 @@ const primaryMenus: PrimaryMenuItem[] = [
 const availableMenus = computed(() =>
   resumeStorageMode === 'local' ? primaryMenus.filter((menu) => menu.key === 'resume-editor') : primaryMenus
 )
-const activeMenuMeta = computed(() => menuMeta[activeMenu.value])
 
 watchEffect(() => {
   if (!availableMenus.value.some((menu) => menu.key === activeMenu.value)) {
@@ -79,16 +60,6 @@ function handleSelectMenu(key: PrimaryMenuKey) {
       @select-menu="handleSelectMenu"
     />
     <div class="workbench-shell">
-      <header class="workspace-topbar">
-        <div class="workspace-copy">
-          <span class="workspace-badge">{{ activeMenuMeta.badge }}</span>
-          <div>
-            <h1>{{ activeMenuMeta.title }}</h1>
-            <p>{{ activeMenuMeta.description }}</p>
-          </div>
-        </div>
-      </header>
-
       <div class="main-content" :class="`${activeMenu}-workspace`">
         <template v-if="activeMenu === 'resume-editor'">
           <EditorPanel />
@@ -116,57 +87,6 @@ function handleSelectMenu(key: PrimaryMenuKey) {
   display: flex;
   flex-direction: column;
   overflow: hidden;
-}
-
-.workspace-topbar {
-  min-height: 76px;
-  padding: var(--space-4) var(--space-5);
-  border-bottom: 1px solid var(--color-border-subtle);
-  background: rgba(255, 255, 255, 0.94);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-4);
-}
-
-.workspace-copy {
-  min-width: 0;
-  display: flex;
-  align-items: center;
-  gap: var(--space-4);
-}
-
-.workspace-badge {
-  min-height: 28px;
-  border-radius: var(--radius-full);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  white-space: nowrap;
-  font-size: var(--font-size-xs);
-  font-weight: 700;
-}
-
-.workspace-badge {
-  padding: 0 var(--space-3);
-  background: var(--color-brand-subtle);
-  color: var(--color-brand-text);
-  border: 1px solid var(--color-brand-muted);
-}
-
-.workspace-copy h1 {
-  margin: 0;
-  color: var(--color-text-primary);
-  font-size: var(--font-size-xl);
-  line-height: var(--line-height-tight);
-  font-weight: 700;
-}
-
-.workspace-copy p {
-  margin: var(--space-1) 0 0;
-  color: var(--color-text-secondary);
-  font-size: var(--font-size-sm);
-  line-height: var(--line-height-normal);
 }
 
 .main-content {
@@ -200,11 +120,6 @@ function handleSelectMenu(key: PrimaryMenuKey) {
 }
 
 @media (max-width: 1080px) {
-  .workspace-topbar {
-    align-items: flex-start;
-    flex-direction: column;
-  }
-
   .resume-editor-workspace {
     display: flex;
     flex-direction: column;
@@ -215,21 +130,6 @@ function handleSelectMenu(key: PrimaryMenuKey) {
 @media (max-width: 760px) {
   .app-layout {
     flex-direction: column;
-  }
-
-  .workspace-topbar {
-    min-height: auto;
-    padding: var(--space-3);
-  }
-
-  .workspace-copy {
-    align-items: flex-start;
-    flex-direction: column;
-    gap: var(--space-2);
-  }
-
-  .workspace-copy h1 {
-    font-size: var(--font-size-lg);
   }
 }
 </style>
