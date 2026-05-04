@@ -1,5 +1,5 @@
 @echo off
-REM author: jf
+REM author: Bob
 setlocal EnableExtensions
 
 REM Stop the current stack first so Spring AI and Python AI do not run together.
@@ -102,6 +102,7 @@ set "PGVECTOR_DATASOURCE_URL="
 set "PYTHON_PGVECTOR_DATASOURCE_URL="
 set "NODE_IMAGE=node:22-alpine"
 set "NGINX_IMAGE=nginx:alpine"
+set "VITE_RESUME_STORAGE_MODE=remote"
 set "PYTHON_IMAGE=python:3.11-slim"
 set "MYSQL_IMAGE=mysql:8.4"
 set "PGVECTOR_IMAGE=pgvector/pgvector:pg17"
@@ -133,6 +134,7 @@ for /f "usebackq tokens=1,* delims==" %%A in ("%~1") do (
   if "%%A"=="OLLAMA_EMBEDDING_BASE_URL" set "OLLAMA_EMBEDDING_BASE_URL=%%B"
   if "%%A"=="NODE_IMAGE" set "NODE_IMAGE=%%B"
   if "%%A"=="NGINX_IMAGE" set "NGINX_IMAGE=%%B"
+  if "%%A"=="VITE_RESUME_STORAGE_MODE" set "VITE_RESUME_STORAGE_MODE=%%B"
   if "%%A"=="PYTHON_IMAGE" set "PYTHON_IMAGE=%%B"
   if "%%A"=="MYSQL_IMAGE" set "MYSQL_IMAGE=%%B"
   if "%%A"=="PGVECTOR_IMAGE" set "PGVECTOR_IMAGE=%%B"

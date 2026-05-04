@@ -2,7 +2,7 @@ ARG NODE_IMAGE=node:22-alpine
 ARG NGINX_IMAGE=nginx:alpine
 ARG VITE_RESUME_STORAGE_MODE=local
 
-# author: jf
+# author: Bob
 
 # 构建阶段只生成前端静态资源。
 FROM ${NODE_IMAGE} AS build

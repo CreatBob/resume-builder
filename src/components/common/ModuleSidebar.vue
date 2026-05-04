@@ -1,41 +1,28 @@
-<!-- author: jf -->
+<!-- author: Bob -->
 <script setup lang="ts">
+import {
+  DEFAULT_PRIMARY_MENUS,
+  type PrimaryMenuItem,
+  type PrimaryMenuKey,
+} from '@/components/common/moduleSidebarTypes'
+
 const props = withDefaults(
   defineProps<{
     collapsed?: boolean
-    activeMenu?: 'resume-editor' | 'ai-interviewer' | 'knowledge-base'
+    activeMenu?: PrimaryMenuKey
+    menus?: PrimaryMenuItem[]
   }>(),
   {
     collapsed: false,
     activeMenu: 'resume-editor',
+    menus: () => DEFAULT_PRIMARY_MENUS,
   }
 )
 
 const emit = defineEmits<{
   (e: 'toggle-collapse'): void
-  (e: 'select-menu', key: 'resume-editor' | 'ai-interviewer' | 'knowledge-base'): void
+  (e: 'select-menu', key: PrimaryMenuKey): void
 }>()
-
-const primaryMenus = [
-  {
-    key: 'resume-editor' as const,
-    label: '简历编辑',
-    iconPath:
-      'M15 3H8a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V8Zm0 0v5h5M9 13h6M9 17h4',
-  },
-  {
-    key: 'ai-interviewer' as const,
-    label: 'AI面试',
-    iconPath:
-      'M9 3h6M12 3v3m-6 4h12a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-3l-3 2-3-2H6a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2Zm3 3h.01M15 15h.01',
-  },
-  {
-    key: 'knowledge-base' as const,
-    label: '知识库',
-    iconPath:
-      'M6 5.5A2.5 2.5 0 0 1 8.5 3H18v15.5A2.5 2.5 0 0 0 15.5 16H6Zm0 0v11A2.5 2.5 0 0 0 8.5 19H18M10 7h4M10 10h4M10 13h3',
-  },
-]
 </script>
 
 <template>
@@ -62,7 +49,7 @@ const primaryMenus = [
     <p class="menu-caption">功能菜单</p>
 
     <ul class="primary-menu-list">
-      <li v-for="menu in primaryMenus" :key="menu.key" class="primary-menu-item">
+      <li v-for="menu in props.menus" :key="menu.key" class="primary-menu-item">
         <button
           class="primary-menu-btn"
           type="button"

@@ -1,4 +1,4 @@
-// author: jf
+// author: Bob
 export type ResumeStorageMode = 'local' | 'remote' | 'auto'
 
 const RESUME_STORAGE_MODE_VALUES = new Set<ResumeStorageMode>(['local', 'remote', 'auto'])

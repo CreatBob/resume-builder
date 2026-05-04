@@ -3,7 +3,7 @@
 
 - 分支：`feature/resume-layout-settings`
 - 报告：`code-review/feature-resume-layout-settings.md`
-- 评分：`96/100`
+- 评分：`94/100`
 - 星级：`⭐⭐⭐⭐⭐`
 - 结论：`建议合并`
 
@@ -21,24 +21,27 @@
 
 ## 已修复问题
 
-1. [.rules/harness-mcp-workflow-rules.md:1、README.md:1、docs/harness-engineering-workflow.md:1] 已将本次修改过的入口文档作者标识统一更新为 `<!-- author: Bob -->`，满足当前仓库文件作者标识约束。
-2. [AGENTS.md:16] 已补充 `.rules/resume-storage-mandatory-rules.md`，使 `AGENTS.md` 中当前必须遵守的规则清单与 `.rules/` 目录保持一致。
+1. [src/App.vue:13、src/config/resumeStorageMode.ts:1、src/components/common/ModuleSidebar.vue:1] 已统一复用 `VITE_RESUME_STORAGE_MODE` 控制能力展示：`local` 隐藏 AI 面试与知识库入口，`remote` / `auto` 显示后端能力入口。根组件会把可用菜单传给侧边栏，并在当前菜单不可用时回退到 `resume-editor`。
+2. [src/App.vue:1、src/assets/main.css:234] 已将根组件中的大量跨组件 `:deep(...)` 主题覆盖迁移到全局 `.career-theme` 主题范围，`App.vue` 只保留应用外壳、工作台布局和菜单编排职责。
+3. [src/App.vue:88] 已移除顶部 `Career Blue Light` 与 `功能不变` 静态状态文案，避免把设计系统或实现说明暴露为用户状态。
+4. [Dockerfile:3、docker-compose.yml:65、.env.docker.example:12、start-docker-spring-ai.bat:101、start-docker-python-ai.bat:105] 已统一 Docker 构建与启动脚本中的 `VITE_RESUME_STORAGE_MODE` 传递，避免后端 profile 构建出的前端错误按纯前端模式隐藏后端能力。
+5. [src/components/common/ModuleSidebar.vue:2、src/components/common/moduleSidebarTypes.ts:1] 已将侧边栏默认菜单配置提升到独立模块导出，避免 `defineProps` 默认值引用局部常量导致 `vite build` 失败。
 
 ## 审查依据
 
-- 已按 UTF-8 读取仓库规则：`AGENTS.md`、`.rules/global-rules.md`、`.rules/frontend-mandatory-rules.md`、`.rules/backend-mandatory-rules.md`、`.rules/spring-ai-backend-mandatory-rules.md`、`.rules/python-ai-backend-mandatory-rules.md`、`.rules/harness-mcp-workflow-rules.md`、`.rules/code-conventions.md`、`.rules/resume-storage-mandatory-rules.md`、`.rules/code-review-rules.md`。
-- 已读取 `code-review` skill 的 `review-standard-v2.md` 与 `project-review-focus.md`。
-- 已审查当前工作区未提交改动，重点覆盖 `AGENTS.md`、`.rules/frontend-mandatory-rules.md`、`.rules/harness-mcp-workflow-rules.md`、`README.md`、`docs/harness-engineering-workflow.md` 与 `docs/design-system/theme-tokens.md`。
-- 已检查新增主题文档是否包含作者标识、主题定位、token 分层、部署模式能力显示规则、组件规范、禁用事项和最佳实践参考。
+- 已按 UTF-8 读取仓库规则：`.rules/global-rules.md`、`.rules/code-conventions.md`、`.rules/frontend-mandatory-rules.md`、`.rules/harness-mcp-workflow-rules.md`、`.rules/resume-storage-mandatory-rules.md`、`.rules/code-review-rules.md`。
+- 已读取 `code-review-fix` skill，并按要求修复全部 P1；P2 在同文件中一并修复。
+- 已对照 `docs/design-system/theme-tokens.md` 复查 `frontend-only` 能力隐藏规则、Career Blue Light token 使用和组件样式边界。
 
 ## 验证结果
 
-- `git diff --check`：通过，未发现空白错误。
-- 作者标识复查：通过，本次新增/修改的入口文档与主题文档均标记为 `author: Bob`。
-- `.rules` 清单对照：通过，`AGENTS.md` 已包含当前 `.rules/` 下全部规则文件。
-- `npm run lint`：未执行。本轮待提交变更为文档与规则文件，不涉及 `src/` 前端代码，且全局规则默认不主动运行测试、编译或构建命令。
-- `npm run type-check`：未执行，原因同上。
-- Playwright 浏览器验证：未执行。本轮未实现页面视觉代码，只沉淀主题规范和规则入口。
+- `npm run type-check`：通过。
+- `npm run lint`：通过，`oxlint` 与 `eslint` 均无错误。
+- `npm run build`：通过，`vite build` 成功产出生产构建。
+- `git diff --check`：通过，未发现空白错误或冲突标记。
+- 文件行数检查：`src/App.vue` 当前未超过 1000 行；主题样式已迁入 `src/assets/main.css`。
+- 作者标识检查：本次新增或修改文件均已标记 `author: Bob`。
+- Playwright 浏览器验证：未执行。当前会话无 Playwright MCP 可用，本轮以静态代码、类型检查、lint 与生产构建作为兜底验证；如需视觉验收，应在具备浏览器自动化能力时补做页面级检查。
 
 ## 汇总
 
@@ -52,7 +55,7 @@
 **📅 日期：** 2026-05-04
 
 #### 📊 质量评估
-* **整体评分：** [ 96 ] / 100
+* **整体评分：** [ 94 ] / 100
 * **星级评定：** ⭐⭐⭐⭐⭐（完美）
 
 #### 🐛 问题统计
@@ -61,9 +64,18 @@
 * 🟢 **轻微问题：** [ 0 ] 个
 
 #### 📝 综合评语
-> 本次变更新增 `Career Blue Light` 主题 token 文档，并把前端视觉规则补入前端强制规则、README、AGENTS 和 Harness 工作流，能提升后续设计一致性。复审确认作者标识与规则入口清单问题均已修复；当前剩余风险仅为未进行页面级视觉实现和浏览器验证，但这与本轮文档/规则变更范围匹配。
+> 本轮已修复前次审查中的全部 P1/P2：纯前端模式不再暴露 AI 面试和知识库入口，能力展示复用现有 `VITE_RESUME_STORAGE_MODE`，根组件样式职责明显收敛，顶部静态说明文案也已移除。类型检查、lint 与生产构建均通过，当前剩余风险主要是尚未做浏览器级视觉验收。
 
 #### ✅ 审查结论
 - [x] **Approve**
 - [ ] **Request Changes**
 - [ ] **Comment Only**
+
+## Code Review Fix Summary
+
+- Branch: `feature/resume-layout-settings`
+- Source Report: `code-review/feature-resume-layout-settings.md`
+- Fixed P0: 0
+- Fixed P1: 2
+- Fixed P2: 1
+- Next Review Target: `> 80`
