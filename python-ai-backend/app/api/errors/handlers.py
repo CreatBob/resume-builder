@@ -10,6 +10,7 @@ from app.domain.exceptions.rag_exceptions import (
     UnsupportedFileTypeError,
     VectorStoreError,
 )
+from app.domain.exceptions.resume_document_exceptions import ResumeDocumentError
 
 
 def register_error_handlers(app: FastAPI) -> None:
@@ -39,3 +40,9 @@ def register_error_handlers(app: FastAPI) -> None:
     @app.exception_handler(VectorStoreError)
     async def handle_vector_store_error(_: Request, exc: VectorStoreError) -> JSONResponse:
         return JSONResponse(status_code=500, content={"detail": str(exc)})
+
+    @app.exception_handler(ResumeDocumentError)
+    async def handle_resume_document_error(_: Request, exc: ResumeDocumentError) -> JSONResponse:
+        # 多份简历存储接口由前端 resumeApi.ts 读取 message 字段，
+        # 因此这里保留与 Java 后端一致的用户可读错误语义，避免前端只能显示“请求失败”。
+        return JSONResponse(status_code=exc.status_code, content={"message": str(exc)})

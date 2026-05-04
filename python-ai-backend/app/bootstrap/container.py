@@ -8,6 +8,7 @@ from app.application.ports.file_parser_port import FileParserPort
 from app.application.ports.image_markdown_ocr_port import ImageMarkdownOcrPort
 from app.application.ports.interview_session_repository import InterviewSessionRepository
 from app.application.ports.llm_port import ChatClientPort
+from app.application.ports.resume_document_repository import ResumeDocumentRepository
 from app.application.ports.vector_store_port import VectorStorePort
 from app.domain.services.document_chunking_service import DocumentChunkingService
 from app.domain.services.interview_flow_service import InterviewGraph
@@ -20,6 +21,7 @@ from app.infrastructure.llm.openai_embedding_adapter import OpenAIEmbeddingAdapt
 from app.infrastructure.llm.ollama_embedding_adapter import OllamaEmbeddingAdapter
 from app.infrastructure.llm.openai_image_markdown_ocr_adapter import OpenAIImageMarkdownOcrAdapter
 from app.infrastructure.persistence.mysql.session_repository import MySqlInterviewSessionRepository
+from app.infrastructure.persistence.mysql.resume_document_repository import MySqlResumeDocumentRepository
 from app.infrastructure.persistence.pgvector.vector_store_adapter import PgVectorStoreAdapter
 from app.infrastructure.text.file_parser_adapter import FileParserAdapter
 
@@ -161,6 +163,17 @@ def build_agent_runtime(settings: Settings | None = None) -> AgentRuntimePort:
 def build_interview_session_repository(settings: Settings | None = None) -> InterviewSessionRepository:
     resolved = settings or get_settings()
     return MySqlInterviewSessionRepository(
+        datasource_url=resolved.mysql_datasource_url,
+        username=resolved.mysql_datasource_username,
+        password=resolved.mysql_datasource_password,
+    )
+
+
+def build_resume_document_repository(settings: Settings | None = None) -> ResumeDocumentRepository:
+    resolved = settings or get_settings()
+    # 多份简历存储固定走 MySQL，与 AI 面试会话同属结构化业务数据。
+    # 这里仅装配 repository 实现，具体 CRUD 规则仍由 application service 承接。
+    return MySqlResumeDocumentRepository(
         datasource_url=resolved.mysql_datasource_url,
         username=resolved.mysql_datasource_username,
         password=resolved.mysql_datasource_password,
