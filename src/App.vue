@@ -180,6 +180,12 @@ function handleSelectMenu(key: PrimaryMenuKey) {
 .resume-editor-workspace {
   display: grid;
   grid-template-columns: minmax(420px, 1fr) minmax(560px, 48vw);
+  min-height: 0;
+}
+
+.resume-editor-workspace > * {
+  min-width: 0;
+  min-height: 0;
 }
 
 .ai-interviewer-workspace,
