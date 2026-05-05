@@ -33,6 +33,7 @@ const currentTemplate = computed<ResumeTemplateDefinition>(() =>
   getResumeTemplateByKey(normalizeResumeTemplateKey(runtime.store.selectedTemplateKey))
 )
 const currentTemplateComponent = computed(() => currentTemplate.value.component)
+const displayResumeTitle = computed(() => props.document.title || runtime.store.basicInfo.name || '简历预览')
 
 function updatePageBreaks() {
   if (!resumeRef.value) return
@@ -123,7 +124,7 @@ function handleBackHome() {
         <div class="shared-resume-head">
           <div>
             <p class="shared-kicker">匿名分享简历</p>
-            <h1 class="shared-title">{{ document.title || runtime.store.basicInfo.name || '简历预览' }}</h1>
+            <p class="shared-head-desc">在线查看这份公开分享的简历内容。</p>
           </div>
           <div class="shared-meta">
             <span class="shared-chip">模板 · {{ currentTemplate.name }}</span>
@@ -150,7 +151,7 @@ function handleBackHome() {
 
       <aside class="shared-resume-side">
         <div class="shared-action-card hero">
-          <p class="action-card-title">美观整齐简历模板</p>
+          <p class="action-card-title">{{ displayResumeTitle }}</p>
           <button class="action-primary" type="button" @click="handleBackHome">我也要写</button>
           <button class="action-secondary" type="button" :disabled="exporting" @click="handleDownloadPdf">
             {{ exporting ? '下载中...' : '下载' }}
@@ -221,12 +222,11 @@ function handleBackHome() {
   text-transform: uppercase;
 }
 
-.shared-title {
+.shared-head-desc {
   margin-top: 6px;
-  font-size: clamp(28px, 3vw, 38px);
-  line-height: 1.08;
-  font-weight: 700;
-  color: var(--color-text-primary);
+  font-size: 14px;
+  line-height: 1.7;
+  color: var(--color-text-secondary);
 }
 
 .shared-meta {

@@ -29,6 +29,7 @@ const templatePickerOpen = ref(false)
 const sharing = ref(false)
 const shareStatusText = ref('')
 const shareStatusType = ref<'success' | 'warning' | 'error' | ''>('')
+const shareFallbackUrl = ref('')
 let shareStatusTimer: ReturnType<typeof window.setTimeout> | null = null
 
 const A4_WIDTH = 794
@@ -215,14 +216,16 @@ function handleShareLinkFocus(event: FocusEvent) {
 }
 
 async function handleCopyShareUrl() {
-  const shareUrl = store.currentResumeShare?.shareUrl
+  const shareUrl = shareFallbackUrl.value || store.currentResumeShare?.shareUrl
   if (!shareUrl) return
   try {
     await copyTextToClipboard(shareUrl)
+    shareFallbackUrl.value = ''
     shareStatusText.value = '分享链接已复制'
     shareStatusType.value = 'success'
   } catch (error) {
-    shareStatusText.value = error instanceof Error ? error.message : '复制失败，请手动复制分享链接'
+    shareFallbackUrl.value = shareUrl
+    shareStatusText.value = error instanceof Error ? error.message : '复制失败，请手动复制下方链接'
     shareStatusType.value = 'warning'
   }
   clearShareStatusSoon()
@@ -231,6 +234,7 @@ async function handleCopyShareUrl() {
 async function handleShareResume() {
   if (!store.canUseShare || sharing.value) return
   sharing.value = true
+  shareFallbackUrl.value = ''
   shareStatusText.value = ''
   shareStatusType.value = ''
   try {
@@ -243,10 +247,12 @@ async function handleShareResume() {
     }
     try {
       await copyTextToClipboard(shareInfo.shareUrl)
+      shareFallbackUrl.value = ''
       shareStatusText.value = '分享链接已复制'
       shareStatusType.value = 'success'
     } catch {
-      shareStatusText.value = '分享链接已生成，请手动复制'
+      shareFallbackUrl.value = shareInfo.shareUrl
+      shareStatusText.value = '分享链接已生成，请手动复制下方链接'
       shareStatusType.value = 'warning'
     }
     clearShareStatusSoon()
@@ -359,18 +365,18 @@ async function exportPDF(mode: ExportQualityMode) {
     <div v-if="shareStatusText" class="share-status" :class="shareStatusType">
       {{ shareStatusText }}
     </div>
-    <div v-if="store.currentResumeShare" class="share-link-panel">
+    <div v-if="shareFallbackUrl" class="share-link-panel">
       <div class="share-link-head">
         <span class="share-link-title">分享链接</span>
         <button class="toolbar-button share-link-copy-button" type="button" @click="handleCopyShareUrl">
-          复制链接
+          再试复制
         </button>
       </div>
       <input
         class="share-link-input"
         type="text"
         readonly
-        :value="store.currentResumeShare.shareUrl"
+        :value="shareFallbackUrl"
         @focus="handleShareLinkFocus"
       />
     </div>
