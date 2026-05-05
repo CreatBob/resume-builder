@@ -1,4 +1,4 @@
-# author: jf
+# author: Bob
 
 # Logs
 logs
@@ -57,3 +57,6 @@ docs/requirements/
 
 # Playwright
 .playwright-mcp
+
+# Temporary local artifacts
+.tmp-*

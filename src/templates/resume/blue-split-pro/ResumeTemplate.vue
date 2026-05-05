@@ -1,4 +1,4 @@
-﻿<!-- author: jf -->
+﻿<!-- author: Bob -->
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useResumeTemplateData } from '../../shared/useResumeTemplateData'
@@ -16,10 +16,10 @@ const {
 
 const contactItems = computed(() => {
   const items = [
-    { label: '鐢佃瘽', value: store.basicInfo.phone.trim() },
-    { label: '閭', value: store.basicInfo.email.trim() },
-    { label: '寰俊', value: store.basicInfo.wechat.trim() },
-    { label: '鐜板眳', value: store.basicInfo.currentCity.trim() },
+    { label: '电话', value: store.basicInfo.phone.trim() },
+    { label: '邮箱', value: store.basicInfo.email.trim() },
+    { label: '微信', value: store.basicInfo.wechat.trim() },
+    { label: '现居', value: store.basicInfo.currentCity.trim() },
   ]
 
   return items.filter((item) => item.value)
@@ -27,11 +27,11 @@ const contactItems = computed(() => {
 
 const baseItems = computed(() => {
   const items = [
-    { label: '鎬у埆', value: store.basicInfo.gender.trim() },
-    { label: '骞撮緞', value: store.basicInfo.age.trim() },
-    { label: '宸ヤ綔骞撮檺', value: store.basicInfo.workYears.trim() },
-    { label: '瀛﹀巻', value: store.basicInfo.educationLevel.trim() },
-    { label: '鎵€鍦ㄥ湴', value: store.basicInfo.location.trim() },
+    { label: '性别', value: store.basicInfo.gender.trim() },
+    { label: '年龄', value: store.basicInfo.age.trim() },
+    { label: '工作年限', value: store.basicInfo.workYears.trim() },
+    { label: '学历', value: store.basicInfo.educationLevel.trim() },
+    { label: '所在地', value: store.basicInfo.location.trim() },
   ]
 
   return items.filter((item) => item.value)
@@ -39,10 +39,10 @@ const baseItems = computed(() => {
 
 const intentionItems = computed(() => {
   const items = [
-    { label: '鐩爣宀椾綅', value: store.basicInfo.jobTitle.trim() },
+    { label: '目标岗位', value: store.basicInfo.jobTitle.trim() },
     { label: '当前状态', value: store.basicInfo.currentStatus.trim() },
-    { label: '鏈熸湜鍩庡競', value: store.basicInfo.expectedLocation.trim() },
-    { label: '鏈熸湜钖祫', value: store.basicInfo.expectedSalary.trim() },
+    { label: '期望城市', value: store.basicInfo.expectedLocation.trim() },
+    { label: '期望薪资', value: store.basicInfo.expectedSalary.trim() },
   ]
 
   return items.filter((item) => item.value)
@@ -52,7 +52,7 @@ function subLine(values: Array<string | undefined>): string {
   return values
     .map((value) => value?.trim() ?? '')
     .filter(Boolean)
-    .join(' 路 ')
+    .join(' · ')
 }
 </script>
 
@@ -61,20 +61,20 @@ function subLine(values: Array<string | undefined>): string {
     <aside class="left-panel">
       <div class="identity">
         <div class="avatar-wrap">
-          <img v-if="store.basicInfo.avatar" :src="store.basicInfo.avatar" alt="澶村儚" />
-          <div v-else class="avatar-placeholder">澶村儚</div>
+          <img v-if="store.basicInfo.avatar" :src="store.basicInfo.avatar" alt="头像" />
+          <div v-else class="avatar-placeholder">头像</div>
         </div>
-        <h1 class="name">{{ store.basicInfo.name || '濮撳悕' }}</h1>
-        <p class="job">{{ store.basicInfo.jobTitle || '宀椾綅鏂瑰悜' }}</p>
+        <h1 class="name">{{ store.basicInfo.name || '姓名' }}</h1>
+        <p class="job">{{ store.basicInfo.jobTitle || '岗位方向' }}</p>
       </div>
 
       <section v-if="contactItems.length" class="side-block">
-        <h3>鑱旂郴鏂瑰紡</h3>
+        <h3>联系方式</h3>
         <p v-for="item in contactItems" :key="item.label"><span>{{ item.label }}</span>{{ item.value }}</p>
       </section>
 
       <section v-if="baseItems.length" class="side-block">
-        <h3>鍩虹淇℃伅</h3>
+        <h3>基础信息</h3>
         <p v-for="item in baseItems" :key="item.label"><span>{{ item.label }}</span>{{ item.value }}</p>
       </section>
 
@@ -84,12 +84,12 @@ function subLine(values: Array<string | undefined>): string {
       </section>
 
       <section v-if="intentionItems.length" class="side-block">
-        <h3>姹傝亴鎰忓悜</h3>
+        <h3>求职意向</h3>
         <p v-for="item in intentionItems" :key="item.label"><span>{{ item.label }}</span>{{ item.value }}</p>
       </section>
 
       <section v-if="profileLinks.length" class="side-block">
-        <h3>涓汉閾炬帴</h3>
+        <h3>个人链接</h3>
         <a v-for="item in profileLinks" :key="item.key" :href="item.href" target="_blank" rel="noopener noreferrer">
           <span>{{ item.label }}</span>{{ item.text }}
         </a>
@@ -107,11 +107,11 @@ function subLine(values: Array<string | undefined>): string {
         class="resume-section"
         :style="moduleOrderStyle('education')"
       >
-        <h2 class="section-title">鏁欒偛缁忓巻</h2>
+        <h2 class="section-title">教育经历</h2>
         <article v-for="edu in store.educationList" :key="edu.id" class="entry" v-show="edu.school">
           <div class="entry-head">
             <p class="entry-main"><strong>{{ edu.school }}</strong></p>
-            <span class="entry-date">{{ edu.startDate }} - {{ edu.endDate || '鑷充粖' }}</span>
+            <span class="entry-date">{{ edu.startDate }} - {{ edu.endDate || '至今' }}</span>
           </div>
           <p class="entry-subline">{{ subLine([edu.major, edu.degree, edu.college, edu.location]) }}</p>
           <div v-if="edu.description" class="entry-rich" v-html="edu.description"></div>
@@ -128,11 +128,11 @@ function subLine(values: Array<string | undefined>): string {
         class="resume-section"
         :style="moduleOrderStyle('workExperience')"
       >
-        <h2 class="section-title">宸ヤ綔缁忓巻</h2>
+        <h2 class="section-title">工作经历</h2>
         <article v-for="work in store.workList" :key="work.id" class="entry" v-show="work.company">
           <div class="entry-head">
             <p class="entry-main"><strong>{{ work.company }}</strong></p>
-            <span class="entry-date">{{ work.startDate }} - {{ work.endDate || '鑷充粖' }}</span>
+            <span class="entry-date">{{ work.startDate }} - {{ work.endDate || '至今' }}</span>
           </div>
           <p class="entry-subline">{{ subLine([work.position, work.department, work.location]) }}</p>
           <div v-if="work.description" class="entry-rich" v-html="work.description"></div>
@@ -144,22 +144,22 @@ function subLine(values: Array<string | undefined>): string {
         class="resume-section"
         :style="moduleOrderStyle('projectExperience')"
       >
-        <h2 class="section-title">椤圭洰缁忓巻</h2>
+        <h2 class="section-title">项目经历</h2>
         <article v-for="project in store.projectList" :key="project.id" class="entry" v-show="project.name">
           <div class="entry-head">
             <p class="entry-main"><strong>{{ project.name }}</strong></p>
-            <span class="entry-date">{{ project.startDate }} - {{ project.endDate || '鑷充粖' }}</span>
+            <span class="entry-date">{{ project.startDate }} - {{ project.endDate || '至今' }}</span>
           </div>
           <p class="entry-subline">{{ subLine([project.role]) }}</p>
           <p v-if="project.link" class="entry-link-row">
             <a class="entry-link" :href="project.link" target="_blank" rel="noopener noreferrer">{{ project.link }}</a>
           </p>
           <div v-if="project.introduction">
-            <p class="block-title">椤圭洰浠嬬粛</p>
+            <p class="block-title">项目介绍</p>
             <div class="entry-rich" v-html="project.introduction"></div>
           </div>
           <div v-if="project.mainWork">
-            <p class="block-title">涓昏宸ヤ綔</p>
+            <p class="block-title">主要工作</p>
             <div class="entry-rich" v-html="project.mainWork"></div>
           </div>
         </article>
@@ -170,7 +170,7 @@ function subLine(values: Array<string | undefined>): string {
         class="resume-section"
         :style="moduleOrderStyle('awards')"
       >
-        <h2 class="section-title">鑽ｈ獕濂栭」</h2>
+        <h2 class="section-title">荣誉奖项</h2>
         <article v-for="award in store.awardList" :key="award.id" class="entry" v-show="awardHasContent(award)">
           <div class="entry-head">
             <div class="entry-rich" v-html="awardContentHtml(award)"></div>
@@ -180,7 +180,7 @@ function subLine(values: Array<string | undefined>): string {
       </section>
 
       <div v-if="!hasAnyContent" class="empty">
-        <p>鍦ㄥ乏渚у～鍐欎俊鎭紝杩欓噷瀹炴椂棰勮</p>
+        <p>在左侧填写信息，这里实时预览</p>
       </div>
     </main>
   </div>

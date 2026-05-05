@@ -1,6 +1,8 @@
+// author: Bob
 {
   "$schema": "./node_modules/oxlint/configuration_schema.json",
   "plugins": ["eslint", "typescript", "unicorn", "oxc", "vue"],
+  "ignorePatterns": [".tmp-*", ".tmp-*/**", "**/.tmp-*", "**/.tmp-*/**"],
   "env": {
     "browser": true
   },
