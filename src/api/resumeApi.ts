@@ -1,6 +1,23 @@
-// author: jf
+// author: Bob
 import { API_BASE_PATH } from './apiBase'
 import type { ResumeDocument, ResumeDocumentPayload } from '@/services/resumeStorageService'
+
+export interface ResumeShareResponse {
+  documentId: string
+  shareToken: string
+  shareUrl: string
+  sharedAt?: string | null
+}
+
+export interface ResumeSharePublicResponse {
+  id: string
+  title: string
+  content: ResumeDocument['content']
+  version: number
+  shareToken: string
+  sharedAt?: string | null
+  updatedAt?: string | null
+}
 
 export function getResumesEndpoint(): string {
   return `${API_BASE_PATH}/resumes`
@@ -8,6 +25,14 @@ export function getResumesEndpoint(): string {
 
 export function getResumeEndpoint(id: string): string {
   return `${API_BASE_PATH}/resumes/${encodeURIComponent(id)}`
+}
+
+export function getResumeShareEndpoint(id: string): string {
+  return `${getResumeEndpoint(id)}/share`
+}
+
+export function getSharedResumeEndpoint(shareToken: string): string {
+  return `${getResumesEndpoint()}/shared/${encodeURIComponent(shareToken)}`
 }
 
 export async function getResumes(signal?: AbortSignal): Promise<ResumeDocument[]> {
@@ -66,6 +91,24 @@ export async function deleteResume(id: string, signal?: AbortSignal): Promise<vo
   if (!response.ok) {
     await readJsonResponse<unknown>(response)
   }
+}
+
+export async function createResumeShare(id: string, signal?: AbortSignal): Promise<ResumeShareResponse> {
+  const response = await fetch(getResumeShareEndpoint(id), {
+    method: 'POST',
+    headers: { Accept: 'application/json' },
+    signal,
+  })
+  return readJsonResponse<ResumeShareResponse>(response)
+}
+
+export async function getSharedResume(shareToken: string, signal?: AbortSignal): Promise<ResumeSharePublicResponse> {
+  const response = await fetch(getSharedResumeEndpoint(shareToken), {
+    method: 'GET',
+    headers: { Accept: 'application/json' },
+    signal,
+  })
+  return readJsonResponse<ResumeSharePublicResponse>(response)
 }
 
 async function readJsonResponse<T>(response: Response): Promise<T> {

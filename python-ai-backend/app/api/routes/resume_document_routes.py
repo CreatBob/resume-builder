@@ -1,19 +1,32 @@
-# author: jf
+# author: Bob
 from fastapi import APIRouter, Response
 
 from app.api.mappers.resume_document_mapper import (
     resume_document_request_to_dto,
     resume_document_response_from_dto,
+    resume_share_public_response_from_dto,
+    resume_share_response,
 )
-from app.api.schemas.resume_document import ResumeDocumentRequest, ResumeDocumentResponse
+from app.api.schemas.resume_document import (
+    ResumeDocumentRequest,
+    ResumeDocumentResponse,
+    ResumeSharePublicResponse,
+    ResumeShareResponse,
+)
 from app.application.use_cases.create_resume_document import (
     create_resume_document as create_resume_document_use_case,
 )
 from app.application.use_cases.delete_resume_document import (
     delete_resume_document as delete_resume_document_use_case,
 )
+from app.application.use_cases.enable_resume_share import (
+    enable_resume_share as enable_resume_share_use_case,
+)
 from app.application.use_cases.get_resume_document import (
     get_resume_document as get_resume_document_use_case,
+)
+from app.application.use_cases.get_shared_resume_document import (
+    get_shared_resume_document as get_shared_resume_document_use_case,
 )
 from app.application.use_cases.list_resume_documents import (
     list_resume_documents as list_resume_documents_use_case,
@@ -44,6 +57,17 @@ def create_resume_document_route(request: ResumeDocumentRequest) -> ResumeDocume
     return resume_document_response_from_dto(create_resume_document_use_case(payload))
 
 
+@router.post("/api/resumes/{document_id}/share", response_model=ResumeShareResponse)
+def enable_resume_share_route(document_id: str) -> ResumeShareResponse:
+    shared = enable_resume_share_use_case(document_id)
+    return resume_share_response(
+        document_id=shared.id,
+        share_token=shared.share_token or "",
+        share_url=f"/share/{shared.share_token}",
+        shared_at=shared.shared_at,
+    )
+
+
 @router.put("/api/resumes/{document_id}", response_model=ResumeDocumentResponse)
 def update_resume_document_route(document_id: str, request: ResumeDocumentRequest) -> ResumeDocumentResponse:
     # 更新链路的版本校验不放在路由层，避免 HTTP 适配代码夹带业务规则。
@@ -55,3 +79,8 @@ def update_resume_document_route(document_id: str, request: ResumeDocumentReques
 def delete_resume_document_route(document_id: str) -> Response:
     delete_resume_document_use_case(document_id)
     return Response(status_code=204)
+
+
+@router.get("/api/resumes/shared/{share_token}", response_model=ResumeSharePublicResponse)
+def get_shared_resume_document_route(share_token: str) -> ResumeSharePublicResponse:
+    return resume_share_public_response_from_dto(get_shared_resume_document_use_case(share_token))

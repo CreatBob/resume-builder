@@ -1,4 +1,4 @@
-# author: jf
+# author: Bob
 from datetime import datetime
 from typing import Any
 
@@ -16,5 +16,25 @@ class ResumeDocumentResponse(BaseModel):
     title: str
     content: dict[str, Any]
     version: int
+    shareToken: str | None = None
+    shareEnabled: bool = False
+    sharedAt: datetime | None = None
     createdAt: datetime | None = None
+    updatedAt: datetime | None = None
+
+
+class ResumeShareResponse(BaseModel):
+    documentId: str
+    shareToken: str
+    shareUrl: str
+    sharedAt: datetime | None = None
+
+
+class ResumeSharePublicResponse(BaseModel):
+    id: str
+    title: str
+    content: dict[str, Any]
+    version: int
+    shareToken: str
+    sharedAt: datetime | None = None
     updatedAt: datetime | None = None

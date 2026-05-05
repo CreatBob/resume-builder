@@ -1,4 +1,4 @@
-# author: jf
+# author: Bob
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -38,6 +38,19 @@ class MySqlResumeDocumentRepository(ResumeDocumentRepository):
         statement = (
             table.select()
             .where(table.c.id == document_id)
+            .where(table.c.deleted_at.is_(None))
+            .limit(1)
+        )
+        with self._bundle.engine.begin() as connection:
+            row = connection.execute(statement).mappings().first()
+        return _row_to_dto(row) if row is not None else None
+
+    def get_shared_by_token(self, share_token: str) -> ResumeDocumentDto | None:
+        table = self._bundle.table
+        statement = (
+            table.select()
+            .where(table.c.share_token == share_token)
+            .where(table.c.share_enabled.is_(True))
             .where(table.c.deleted_at.is_(None))
             .limit(1)
         )
@@ -106,6 +119,35 @@ class MySqlResumeDocumentRepository(ResumeDocumentRepository):
             raise ResumeDocumentStorageError("简历更新后读取失败")
         return _row_to_dto(row)
 
+    def enable_share(self, document_id: str, share_token: str) -> ResumeDocumentDto | None:
+        table = self._bundle.table
+        with self._bundle.engine.begin() as connection:
+            statement = (
+                table.update()
+                .where(table.c.id == document_id)
+                .where(table.c.deleted_at.is_(None))
+                .values(
+                    share_token=share_token,
+                    share_enabled=True,
+                    shared_at=_current_database_timestamp(),
+                    updated_at=_current_database_timestamp(),
+                )
+            )
+            result = connection.execute(statement)
+            if result.rowcount == 0:
+                return None
+
+            row = connection.execute(
+                table.select()
+                .where(table.c.id == document_id)
+                .where(table.c.deleted_at.is_(None))
+                .limit(1)
+            ).mappings().first()
+
+        if row is None:
+            raise ResumeDocumentStorageError("简历分享状态读取失败")
+        return _row_to_dto(row)
+
     def soft_delete(self, document_id: str) -> bool:
         table = self._bundle.table
         with self._bundle.engine.begin() as connection:
@@ -124,7 +166,7 @@ class MySqlResumeDocumentRepository(ResumeDocumentRepository):
 
 def _build_table_bundle(datasource_url: str, username: str, password: str) -> _ResumeDocumentTableBundle:
     try:
-        from sqlalchemy import JSON, Column, DateTime, Integer, MetaData, String, Table, create_engine
+        from sqlalchemy import JSON, Boolean, Column, DateTime, Integer, MetaData, String, Table, create_engine
     except ImportError as exc:  # pragma: no cover
         raise RuntimeError("SQLAlchemy is required for MySQL resume document storage") from exc
 
@@ -137,6 +179,9 @@ def _build_table_bundle(datasource_url: str, username: str, password: str) -> _R
         Column("title", String(120), nullable=False),
         Column("content_json", JSON, nullable=False),
         Column("version", Integer, nullable=False),
+        Column("share_token", String(64), nullable=True),
+        Column("share_enabled", Boolean, nullable=False),
+        Column("shared_at", DateTime, nullable=True),
         Column("created_at", DateTime, nullable=False),
         Column("updated_at", DateTime, nullable=False),
         Column("deleted_at", DateTime, nullable=True),
@@ -202,6 +247,9 @@ def _row_to_dto(row: Any) -> ResumeDocumentDto:
         title=str(row.get("title") or ""),
         content=content,
         version=int(row.get("version") or 1),
+        share_token=str(row.get("share_token") or "") or None,
+        share_enabled=bool(row.get("share_enabled") or False),
+        shared_at=_as_datetime(row.get("shared_at")),
         created_at=_as_datetime(row.get("created_at")),
         updated_at=_as_datetime(row.get("updated_at")),
     )

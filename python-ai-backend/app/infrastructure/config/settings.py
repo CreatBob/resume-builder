@@ -1,4 +1,4 @@
-# author: jf
+# author: Bob
 import os
 from dataclasses import dataclass
 from functools import lru_cache
@@ -154,7 +154,10 @@ def get_settings() -> Settings:
 
     return Settings(
         server_port=_get_int("SERVER_PORT", 8999),
-        app_cors_allowed_origins=os.getenv("APP_CORS_ALLOWED_ORIGINS", "http://localhost:5173"),
+        app_cors_allowed_origins=os.getenv(
+            "APP_CORS_ALLOWED_ORIGINS",
+            "http://localhost:5173,http://127.0.0.1:5173,http://localhost:3000,http://127.0.0.1:3000",
+        ),
         app_rag_top_k=_get_int("APP_RAG_TOP_K", 5),
         app_interview_rag_top_k=max(1, _get_int("APP_INTERVIEW_RAG_TOP_K", _get_int("APP_RAG_TOP_K", 5))),
         app_interview_rag_similarity_threshold=_normalize_similarity_threshold(

@@ -1,8 +1,10 @@
-// author: jf
+// author: Bob
 package com.resumebuilder.springaibackend.controller;
 
 import com.resumebuilder.springaibackend.dto.ResumeDocumentRequest;
 import com.resumebuilder.springaibackend.dto.ResumeDocumentResponse;
+import com.resumebuilder.springaibackend.dto.ResumeSharePublicResponse;
+import com.resumebuilder.springaibackend.dto.ResumeShareResponse;
 import com.resumebuilder.springaibackend.service.ResumeDocumentService;
 import jakarta.validation.Valid;
 import java.util.List;
@@ -42,12 +44,22 @@ public class ResumeDocumentController {
         return resumeDocumentService.createDocument(request);
     }
 
+    @PostMapping("/{id}/share")
+    public ResumeShareResponse enableShare(@PathVariable String id) {
+        return resumeDocumentService.enableShare(id);
+    }
+
     @PutMapping("/{id}")
     public ResumeDocumentResponse updateDocument(
             @PathVariable String id,
             @Valid @RequestBody ResumeDocumentRequest request
     ) {
         return resumeDocumentService.updateDocument(id, request);
+    }
+
+    @GetMapping("/shared/{shareToken}")
+    public ResumeSharePublicResponse getSharedDocument(@PathVariable String shareToken) {
+        return resumeDocumentService.getSharedDocument(shareToken);
     }
 
     @DeleteMapping("/{id}")

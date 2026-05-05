@@ -2,13 +2,16 @@ import { defineStore } from 'pinia'
 import { computed, reactive, ref, watch } from 'vue'
 import { getResumeStorageMode } from '@/config/resumeStorageMode'
 import {
+  enableResumeShare,
   ResumeStorageConflictError,
   createResumeStorageService,
   type ResumeData,
   type ResumeDocument,
+  type ResumeShareInfo,
+  type ResumeStorageKind,
 } from '@/services/resumeStorageService'
 import { normalizeResumeTemplateKey, type ResumeTemplateKey } from '@/templates/resume'
-// author: jf
+// author: Bob
 
 export interface BasicInfo {
   name: string
@@ -304,6 +307,8 @@ export const useResumeStore = defineStore('resume', () => {
   const resumeDocuments = ref<ResumeDocument[]>([])
   const storageMode = getResumeStorageMode()
   const resumeStorage = createResumeStorageService(storageMode)
+  const resolvedStorageKind = ref<ResumeStorageKind>(storageMode === 'remote' ? 'remote' : 'local')
+  const currentResumeShare = ref<ResumeShareInfo | null>(null)
   let isApplyingDocument = false
 
   function toggleModule(key: string) {
@@ -636,6 +641,7 @@ export const useResumeStore = defineStore('resume', () => {
     workspaceError.value = ''
     try {
       const docs = await resumeStorage.list(snapshotResumeData())
+      resolvedStorageKind.value = resumeStorage.getStorageKind()
       resumeDocuments.value = docs
       let selectedId = resumeStorage.getCurrentId() ?? docs[0]?.id ?? ''
       if (!docs.some((doc) => doc.id === selectedId)) {
@@ -655,6 +661,7 @@ export const useResumeStore = defineStore('resume', () => {
       upsertResumeDocument(selectedDoc)
       currentResumeId.value = selectedDoc.id
       resumeStorage.setCurrentId(selectedDoc.id)
+      syncCurrentResumeShare(selectedDoc)
       isApplyingDocument = true
       applyResumeData(selectedDoc.content)
       isApplyingDocument = false
@@ -689,6 +696,7 @@ export const useResumeStore = defineStore('resume', () => {
     upsertResumeDocument(doc)
     currentResumeId.value = doc.id
     resumeStorage.setCurrentId(doc.id)
+    syncCurrentResumeShare(doc)
     isApplyingDocument = true
     applyResumeData(doc.content)
     isApplyingDocument = false
@@ -704,6 +712,7 @@ export const useResumeStore = defineStore('resume', () => {
     })
     upsertResumeDocument(savedDoc)
     currentResumeId.value = savedDoc.id
+    syncCurrentResumeShare(savedDoc)
   }
 
   async function deleteCurrentResume() {
@@ -714,7 +723,31 @@ export const useResumeStore = defineStore('resume', () => {
     const nextDoc = resumeDocuments.value[0]
     if (nextDoc) {
       await switchResume(nextDoc.id, false)
+    } else {
+      currentResumeShare.value = null
     }
+  }
+
+  async function shareCurrentResume(): Promise<ResumeShareInfo | null> {
+    const currentDoc = currentResume.value
+    if (!currentDoc) return null
+    const saved = await saveToStorage('manual')
+    if (!saved) return null
+
+    const shareInfo = await enableResumeShare(currentDoc.id)
+    currentResumeShare.value = shareInfo
+
+    const nextCurrent = currentResume.value
+    if (nextCurrent) {
+      upsertResumeDocument({
+        ...nextCurrent,
+        shareToken: shareInfo.shareToken,
+        shareEnabled: true,
+        sharedAt: shareInfo.sharedAt ?? null,
+      })
+    }
+
+    return shareInfo
   }
 
   function createEmptyResumeData(): ResumeData {
@@ -797,9 +830,26 @@ export const useResumeStore = defineStore('resume', () => {
     } else {
       resumeDocuments.value.unshift(doc)
     }
+    if (doc.id === currentResumeId.value) {
+      syncCurrentResumeShare(doc)
+    }
+  }
+
+  function syncCurrentResumeShare(doc: ResumeDocument | null) {
+    if (!doc?.shareEnabled || !doc.shareToken) {
+      currentResumeShare.value = null
+      return
+    }
+    currentResumeShare.value = {
+      documentId: doc.id,
+      shareToken: doc.shareToken,
+      shareUrl: `${window.location.origin}/share/${doc.shareToken}`,
+      sharedAt: doc.sharedAt ?? null,
+    }
   }
 
   const currentResume = computed(() => resumeDocuments.value.find((doc) => doc.id === currentResumeId.value) ?? null)
+  const canUseShare = computed(() => resolvedStorageKind.value === 'remote')
 
   let saveTimer: ReturnType<typeof setTimeout> | null = null
   watch(
@@ -836,7 +886,10 @@ export const useResumeStore = defineStore('resume', () => {
     workspaceError,
     resumeDocuments,
     currentResume,
+    currentResumeShare,
     currentResumeId,
+    resolvedStorageKind,
+    canUseShare,
     selectedTemplateKey,
     layoutSettings,
     basicInfo,
@@ -877,6 +930,7 @@ export const useResumeStore = defineStore('resume', () => {
     switchResume,
     renameCurrentResume,
     deleteCurrentResume,
+    shareCurrentResume,
     autoSaveDelayMs: AUTO_SAVE_DELAY_MS,
     nextAutoSaveAt,
     lastSavedAt,

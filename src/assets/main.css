@@ -161,6 +161,18 @@ body {
   overflow: hidden;
 }
 
+body.share-route-active {
+  overflow: auto;
+  height: auto;
+  min-height: 100vh;
+}
+
+body.share-route-active #app {
+  height: auto;
+  min-height: 100vh;
+  overflow: visible;
+}
+
 input,
 textarea,
 select,

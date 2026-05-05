@@ -1,4 +1,6 @@
-# author: jf
+# author: Bob
+from uuid import uuid4
+
 from app.application.dto.resume_document_dto import ResumeDocumentDto, ResumeDocumentPayloadDto
 from app.application.ports.resume_document_repository import ResumeDocumentRepository
 from app.domain.exceptions.resume_document_exceptions import (
@@ -36,6 +38,30 @@ def create_resume_document(
         version=None,
     )
     return repository.create(normalized_payload)
+
+
+def enable_resume_share(document_id: str, repository: ResumeDocumentRepository) -> ResumeDocumentDto:
+    safe_id = _normalize_id(document_id)
+    existing = repository.get_active(safe_id)
+    if existing is None:
+        raise ResumeDocumentNotFoundError("未找到简历")
+
+    if existing.share_enabled and existing.share_token:
+        return existing
+
+    share_token = f"share_{uuid4().hex}"
+    shared = repository.enable_share(safe_id, share_token)
+    if shared is None:
+        raise ResumeDocumentNotFoundError("未找到简历")
+    return shared
+
+
+def get_shared_resume_document(share_token: str, repository: ResumeDocumentRepository) -> ResumeDocumentDto:
+    safe_token = _normalize_share_token(share_token)
+    document = repository.get_shared_by_token(safe_token)
+    if document is None:
+        raise ResumeDocumentNotFoundError("未找到可分享简历")
+    return document
 
 
 def update_resume_document(
@@ -80,3 +106,10 @@ def _normalize_id(document_id: str | None) -> str:
 def _normalize_title(title: str | None) -> str:
     value = str(title or "").strip()
     return value or "未命名简历"
+
+
+def _normalize_share_token(share_token: str | None) -> str:
+    value = str(share_token or "").strip()
+    if not value:
+        raise ResumeDocumentBadRequestError("分享链接无效")
+    return value

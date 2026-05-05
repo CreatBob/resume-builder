@@ -11,6 +11,7 @@ import {
 } from '@/stores/resume'
 import type { MetaIconKey } from './metaIcons'
 import { toHref } from './metaIcons'
+import { createLayoutStyle, useInjectedResumeTemplateRuntime } from './resumeTemplateRuntime'
 import { awardContentHtml, awardHasContent, htmlToPlainText } from '@/utils/awardContent'
 
 const PREVIEW_AVATAR = `data:image/svg+xml;utf8,${encodeURIComponent(`
@@ -262,7 +263,8 @@ function mergePreviewList<T>(
 }
 
 export function useResumeTemplateData() {
-  const rawStore = useResumeStore()
+  const injectedRuntime = useInjectedResumeTemplateRuntime()
+  const rawStore = injectedRuntime?.store ?? useResumeStore()
 
   const previewBasicInfo = computed<BasicInfo>(() => ({
     ...rawStore.basicInfo,
@@ -475,16 +477,7 @@ export function useResumeTemplateData() {
   }
 
   const layoutStyle = computed<CSSProperties>(
-    () =>
-      ({
-        '--resume-page-margin-top': `${rawStore.layoutSettings.pageMarginTop}px`,
-        '--resume-page-margin-left': `${rawStore.layoutSettings.pageMarginLeft}px`,
-        '--resume-page-margin-right': `${rawStore.layoutSettings.pageMarginRight}px`,
-        '--resume-module-margin-top': `${rawStore.layoutSettings.moduleMarginTop}px`,
-        '--resume-module-margin-bottom': `${rawStore.layoutSettings.moduleMarginBottom}px`,
-        '--resume-section-title-content-gap': `${rawStore.layoutSettings.sectionTitleContentGap}px`,
-        '--resume-content-line-height': String(rawStore.layoutSettings.contentLineHeight),
-      }) as CSSProperties
+    () => injectedRuntime?.layoutStyle ?? createLayoutStyle(rawStore.layoutSettings)
   )
 
   return {

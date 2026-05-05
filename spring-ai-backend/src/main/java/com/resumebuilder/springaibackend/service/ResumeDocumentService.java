@@ -1,10 +1,12 @@
-// author: jf
+// author: Bob
 package com.resumebuilder.springaibackend.service;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.resumebuilder.springaibackend.dto.ResumeDocumentRequest;
 import com.resumebuilder.springaibackend.dto.ResumeDocumentResponse;
+import com.resumebuilder.springaibackend.dto.ResumeSharePublicResponse;
+import com.resumebuilder.springaibackend.dto.ResumeShareResponse;
 import com.resumebuilder.springaibackend.entity.ResumeDocumentEntity;
 import com.resumebuilder.springaibackend.mapper.ResumeDocumentMapper;
 import java.time.LocalDateTime;
@@ -38,6 +40,37 @@ public class ResumeDocumentService {
     }
 
     @Transactional
+    public ResumeShareResponse enableShare(String id) {
+        ResumeDocumentEntity existing = findActiveDocument(id);
+        String shareToken = normalizeShareToken(existing.getShareToken());
+        if (!Boolean.TRUE.equals(existing.getShareEnabled()) || shareToken == null) {
+            shareToken = "share_" + UUID.randomUUID().toString().replace("-", "");
+            resumeDocumentMapper.enableShareById(existing.getId(), shareToken);
+            existing = findActiveDocument(existing.getId());
+        }
+
+        return new ResumeShareResponse(
+                existing.getId(),
+                shareToken,
+                buildShareUrl(shareToken),
+                existing.getSharedAt()
+        );
+    }
+
+    public ResumeSharePublicResponse getSharedDocument(String shareToken) {
+        ResumeDocumentEntity entity = findSharedDocument(shareToken);
+        return new ResumeSharePublicResponse(
+                entity.getId(),
+                entity.getTitle(),
+                fromJson(entity.getContentJson()),
+                entity.getVersion(),
+                entity.getShareToken(),
+                entity.getSharedAt(),
+                entity.getUpdatedAt()
+        );
+    }
+
+    @Transactional
     public ResumeDocumentResponse createDocument(ResumeDocumentRequest request) {
         LocalDateTime now = LocalDateTime.now();
         ResumeDocumentEntity entity = new ResumeDocumentEntity();
@@ -45,6 +78,7 @@ public class ResumeDocumentService {
         entity.setTitle(normalizeTitle(request.title()));
         entity.setContentJson(toJson(request.content()));
         entity.setVersion(1);
+        entity.setShareEnabled(false);
         entity.setCreatedAt(now);
         entity.setUpdatedAt(now);
         resumeDocumentMapper.insert(entity);
@@ -96,6 +130,9 @@ public class ResumeDocumentService {
                 entity.getTitle(),
                 fromJson(entity.getContentJson()),
                 entity.getVersion(),
+                entity.getShareToken(),
+                Boolean.TRUE.equals(entity.getShareEnabled()),
+                entity.getSharedAt(),
                 entity.getCreatedAt(),
                 entity.getUpdatedAt()
         );
@@ -121,5 +158,26 @@ public class ResumeDocumentService {
         } catch (Exception ex) {
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "简历内容读取失败");
         }
+    }
+
+    private ResumeDocumentEntity findSharedDocument(String shareToken) {
+        String safeToken = normalizeShareToken(shareToken);
+        if (safeToken == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "分享链接无效");
+        }
+        ResumeDocumentEntity entity = resumeDocumentMapper.selectSharedByToken(safeToken);
+        if (entity == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "未找到可分享简历");
+        }
+        return entity;
+    }
+
+    private String normalizeShareToken(String shareToken) {
+        String safeToken = shareToken == null ? "" : shareToken.trim();
+        return safeToken.isBlank() ? null : safeToken;
+    }
+
+    private String buildShareUrl(String shareToken) {
+        return "/share/" + shareToken;
     }
 }

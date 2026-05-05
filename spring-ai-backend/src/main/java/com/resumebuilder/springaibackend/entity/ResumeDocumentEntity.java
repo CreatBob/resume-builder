@@ -1,4 +1,4 @@
-// author: jf
+// author: Bob
 package com.resumebuilder.springaibackend.entity;
 
 import com.baomidou.mybatisplus.annotation.IdType;
@@ -21,6 +21,15 @@ public class ResumeDocumentEntity {
 
     @TableField("version")
     private Integer version;
+
+    @TableField("share_token")
+    private String shareToken;
+
+    @TableField("share_enabled")
+    private Boolean shareEnabled;
+
+    @TableField("shared_at")
+    private LocalDateTime sharedAt;
 
     @TableField("created_at")
     private LocalDateTime createdAt;
@@ -61,6 +70,30 @@ public class ResumeDocumentEntity {
 
     public void setVersion(Integer version) {
         this.version = version;
+    }
+
+    public String getShareToken() {
+        return shareToken;
+    }
+
+    public void setShareToken(String shareToken) {
+        this.shareToken = shareToken;
+    }
+
+    public Boolean getShareEnabled() {
+        return shareEnabled;
+    }
+
+    public void setShareEnabled(Boolean shareEnabled) {
+        this.shareEnabled = shareEnabled;
+    }
+
+    public LocalDateTime getSharedAt() {
+        return sharedAt;
+    }
+
+    public void setSharedAt(LocalDateTime sharedAt) {
+        this.sharedAt = sharedAt;
     }
 
     public LocalDateTime getCreatedAt() {

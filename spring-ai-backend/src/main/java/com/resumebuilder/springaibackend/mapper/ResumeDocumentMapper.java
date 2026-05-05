@@ -1,4 +1,4 @@
-// author: jf
+// author: Bob
 package com.resumebuilder.springaibackend.mapper;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
@@ -14,11 +14,18 @@ public interface ResumeDocumentMapper extends BaseMapper<ResumeDocumentEntity> {
 
     ResumeDocumentEntity selectActiveById(@Param("id") String id);
 
+    ResumeDocumentEntity selectSharedByToken(@Param("shareToken") String shareToken);
+
     int updateActiveDocumentIfVersion(
             @Param("id") String id,
             @Param("title") String title,
             @Param("contentJson") String contentJson,
             @Param("version") Integer version
+    );
+
+    int enableShareById(
+            @Param("id") String id,
+            @Param("shareToken") String shareToken
     );
 
     int softDeleteActiveById(@Param("id") String id);

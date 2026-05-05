@@ -1,8 +1,10 @@
-// author: jf
+// author: Bob
 import {
   createResume,
+  createResumeShare,
   deleteResume,
   getResume,
+  getSharedResume,
   getResumes,
   updateResume,
 } from '@/api/resumeApi'
@@ -13,6 +15,9 @@ export interface ResumeDocument {
   title: string
   content: ResumeData
   version: number
+  shareToken?: string | null
+  shareEnabled?: boolean
+  sharedAt?: string | null
   createdAt: string
   updatedAt: string
 }
@@ -37,12 +42,32 @@ export interface ResumeData {
   selfIntro?: string
 }
 
+export interface SharedResumeDocument {
+  id: string
+  title: string
+  content: ResumeData
+  version: number
+  shareToken: string
+  sharedAt?: string | null
+  updatedAt?: string | null
+}
+
+export interface ResumeShareInfo {
+  documentId: string
+  shareToken: string
+  shareUrl: string
+  sharedAt?: string | null
+}
+
+export type ResumeStorageKind = 'local' | 'remote'
+
 interface ResumeStorageDriver {
   list(defaultContent: ResumeData): Promise<ResumeDocument[]>
   get(id: string): Promise<ResumeDocument>
   create(payload: ResumeDocumentPayload): Promise<ResumeDocument>
   update(id: string, payload: ResumeDocumentPayload): Promise<ResumeDocument>
   delete(id: string): Promise<void>
+  getStorageKind(): ResumeStorageKind
   getCurrentId(): string | null
   setCurrentId(id: string): void
 }
@@ -113,6 +138,10 @@ class LocalResumeStorageDriver implements ResumeStorageDriver {
       if (next) this.setCurrentId(next.id)
       else localStorage.removeItem(LOCAL_CURRENT_ID_KEY)
     }
+  }
+
+  getStorageKind(): ResumeStorageKind {
+    return 'local'
   }
 
   getCurrentId(): string | null {
@@ -219,6 +248,10 @@ class RemoteResumeStorageDriver implements ResumeStorageDriver {
     await deleteResume(id)
   }
 
+  getStorageKind(): ResumeStorageKind {
+    return 'remote'
+  }
+
   getCurrentId(): string | null {
     return localStorage.getItem(LOCAL_CURRENT_ID_KEY)
   }
@@ -250,6 +283,10 @@ class AutoResumeStorageDriver implements ResumeStorageDriver {
 
   async delete(id: string): Promise<void> {
     await this.requireResolvedDriver().delete(id)
+  }
+
+  getStorageKind(): ResumeStorageKind {
+    return this.resolvedDriver?.getStorageKind() ?? 'local'
   }
 
   getCurrentId(): string | null {
@@ -334,6 +371,10 @@ class ProbedRemoteResumeStorageDriver implements ResumeStorageDriver {
     return this.remoteDriver.delete(id)
   }
 
+  getStorageKind(): ResumeStorageKind {
+    return 'remote'
+  }
+
   getCurrentId(): string | null {
     return this.remoteDriver.getCurrentId()
   }
@@ -390,4 +431,33 @@ export function createResumeStorageService(mode: ResumeStorageMode = getResumeSt
   if (mode === 'remote') return new RemoteResumeStorageDriver()
   if (mode === 'local') return new LocalResumeStorageDriver()
   return new AutoResumeStorageDriver()
+}
+
+export function toAbsoluteResumeShareUrl(shareUrl: string): string {
+  if (/^https?:\/\//i.test(shareUrl)) return shareUrl
+  const normalizedPath = shareUrl.startsWith('/') ? shareUrl : `/${shareUrl}`
+  return `${window.location.origin}${normalizedPath}`
+}
+
+export async function enableResumeShare(id: string): Promise<ResumeShareInfo> {
+  const response = await createResumeShare(id)
+  return {
+    documentId: response.documentId,
+    shareToken: response.shareToken,
+    shareUrl: toAbsoluteResumeShareUrl(response.shareUrl),
+    sharedAt: response.sharedAt ?? null,
+  }
+}
+
+export async function getSharedResumeDocument(shareToken: string): Promise<SharedResumeDocument> {
+  const response = await getSharedResume(shareToken)
+  return {
+    id: response.id,
+    title: response.title,
+    content: response.content,
+    version: response.version,
+    shareToken: response.shareToken,
+    sharedAt: response.sharedAt ?? null,
+    updatedAt: response.updatedAt ?? null,
+  }
 }
