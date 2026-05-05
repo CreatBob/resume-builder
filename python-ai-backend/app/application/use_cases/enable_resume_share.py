@@ -4,7 +4,7 @@ from app.application.services.resume_document_service import enable_resume_share
 from app.bootstrap.container import build_resume_document_repository, resolve_settings
 
 
-def enable_resume_share(document_id: str) -> ResumeDocumentDto:
+def enable_resume_share(workspace_id: str, document_id: str) -> ResumeDocumentDto:
     settings = resolve_settings()
     repository = build_resume_document_repository(settings)
-    return enable_resume_share_service(document_id, repository)
+    return enable_resume_share_service(workspace_id, document_id, repository)

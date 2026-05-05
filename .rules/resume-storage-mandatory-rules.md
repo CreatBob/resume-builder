@@ -21,6 +21,9 @@
 2. 未配置或配置非法时，默认使用 `auto`，避免纯前端预览场景被后端依赖阻断。
 3. `auto` 模式的远程探测失败只允许回退到当前页面会话的本地存储，不得静默把后续请求混写到远程。
 4. `remote` 模式失败时必须向用户暴露错误，不得自动吞掉远程保存失败。
+5. `remote` 与成功探测远程的 `auto` 模式，主编辑工作区必须按匿名工作区隔离；不得再暴露全局共享简历列表。
+6. 匿名工作区应由后端在首次请求时签发稳定标识，优先通过 `HttpOnly` cookie 持久化；前端不应显式传递 `workspace_id` 查询参数。
+7. 匿名工作区 cookie 名称固定为 `resume_workspace`，值格式固定为 `workspace_` + 32 位小写十六进制字符；后端收到缺失或格式非法的 cookie 时必须重新签发，禁止把异常值写入 `workspace_id` 字段。
 
 ## 3. 前端职责边界
 
@@ -50,6 +53,11 @@ Spring AI 后端与 Python AI Backend 必须保持同一组接口：
 
 错误响应中必须包含前端可读取的 `message` 字段，尤其是版本冲突、未找到简历、参数不合法等场景。
 
+补充约束：
+
+1. `GET /api/resumes`、`GET /api/resumes/{id}`、`POST /api/resumes`、`PUT /api/resumes/{id}`、`DELETE /api/resumes/{id}`、`POST /api/resumes/{id}/share` 都必须限定在当前匿名工作区内。
+2. `GET /api/resumes/shared/{shareToken}` 继续作为公开分享读取接口，不依赖匿名工作区 cookie。
+
 ## 5. 数据库归属
 
 1. 多份简历文档属于结构化业务数据，固定使用 MySQL。
@@ -57,12 +65,14 @@ Spring AI 后端与 Python AI Backend 必须保持同一组接口：
 3. 简历文档表结构固定落在 `sql/resume_schema.sql`。
 4. 应用启动流程不得自动建表；Docker 启动脚本如执行 SQL，必须是显式脚本流程，不属于后端应用启动建表。
 5. Spring AI 后端业务 SQL 必须写在 `spring-ai-backend/src/main/resources/mapper/*.xml`。
+6. `resume_documents` 必须包含匿名工作区归属字段，例如 `workspace_id`；主编辑态查询不得命中空工作区或其他工作区数据。
 
 ## 6. 跨后端一致性
 
 1. Java 与 Python 两套后端的简历文档行为必须保持一致：标题兜底、软删除、更新时间、版本冲突、错误文案都不能分叉。
 2. CORS 必须允许前端 remote 模式需要的 `GET`、`POST`、`PUT`、`DELETE`、`OPTIONS` 方法。
 3. 新增或调整简历存储接口时，必须同步检查 README、Docker 启动脚本、`.env.docker.example` 与 `env.d.ts`。
+4. Java 与 Python 两套后端的匿名工作区 cookie 名称、生成策略和“分享接口不依赖工作区”的行为必须保持一致。
 
 ## 7. 审查口径
 

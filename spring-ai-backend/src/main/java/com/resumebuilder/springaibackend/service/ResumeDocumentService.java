@@ -29,24 +29,24 @@ public class ResumeDocumentService {
         this.objectMapper = objectMapper;
     }
 
-    public List<ResumeDocumentResponse> listDocuments() {
-        return resumeDocumentMapper.selectActiveDocuments().stream()
+    public List<ResumeDocumentResponse> listDocuments(String workspaceId) {
+        return resumeDocumentMapper.selectActiveDocuments(normalizeWorkspaceId(workspaceId)).stream()
                 .map(this::toResponse)
                 .toList();
     }
 
-    public ResumeDocumentResponse getDocument(String id) {
-        return toResponse(findActiveDocument(id));
+    public ResumeDocumentResponse getDocument(String workspaceId, String id) {
+        return toResponse(findActiveDocument(workspaceId, id));
     }
 
     @Transactional
-    public ResumeShareResponse enableShare(String id) {
-        ResumeDocumentEntity existing = findActiveDocument(id);
+    public ResumeShareResponse enableShare(String workspaceId, String id) {
+        ResumeDocumentEntity existing = findActiveDocument(workspaceId, id);
         String shareToken = normalizeShareToken(existing.getShareToken());
         if (!Boolean.TRUE.equals(existing.getShareEnabled()) || shareToken == null) {
             shareToken = "share_" + UUID.randomUUID().toString().replace("-", "");
-            resumeDocumentMapper.enableShareById(existing.getId(), shareToken);
-            existing = findActiveDocument(existing.getId());
+            resumeDocumentMapper.enableShareById(existing.getId(), existing.getWorkspaceId(), shareToken);
+            existing = findActiveDocument(existing.getWorkspaceId(), existing.getId());
         }
 
         return new ResumeShareResponse(
@@ -71,10 +71,11 @@ public class ResumeDocumentService {
     }
 
     @Transactional
-    public ResumeDocumentResponse createDocument(ResumeDocumentRequest request) {
+    public ResumeDocumentResponse createDocument(String workspaceId, ResumeDocumentRequest request) {
         LocalDateTime now = LocalDateTime.now();
         ResumeDocumentEntity entity = new ResumeDocumentEntity();
         entity.setId("resume_" + UUID.randomUUID().toString().replace("-", ""));
+        entity.setWorkspaceId(normalizeWorkspaceId(workspaceId));
         entity.setTitle(normalizeTitle(request.title()));
         entity.setContentJson(toJson(request.content()));
         entity.setVersion(1);
@@ -86,8 +87,8 @@ public class ResumeDocumentService {
     }
 
     @Transactional
-    public ResumeDocumentResponse updateDocument(String id, ResumeDocumentRequest request) {
-        ResumeDocumentEntity existing = findActiveDocument(id);
+    public ResumeDocumentResponse updateDocument(String workspaceId, String id, ResumeDocumentRequest request) {
+        ResumeDocumentEntity existing = findActiveDocument(workspaceId, id);
         Integer version = request.version();
         if (version == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "保存简历时必须携带版本号");
@@ -95,6 +96,7 @@ public class ResumeDocumentService {
 
         int updated = resumeDocumentMapper.updateActiveDocumentIfVersion(
                 existing.getId(),
+                existing.getWorkspaceId(),
                 normalizeTitle(request.title()),
                 toJson(request.content()),
                 version
@@ -103,21 +105,21 @@ public class ResumeDocumentService {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "简历已被其他页面更新，请刷新后再编辑");
         }
 
-        return toResponse(findActiveDocument(existing.getId()));
+        return toResponse(findActiveDocument(existing.getWorkspaceId(), existing.getId()));
     }
 
     @Transactional
-    public void deleteDocument(String id) {
-        ResumeDocumentEntity existing = findActiveDocument(id);
-        resumeDocumentMapper.softDeleteActiveById(existing.getId());
+    public void deleteDocument(String workspaceId, String id) {
+        ResumeDocumentEntity existing = findActiveDocument(workspaceId, id);
+        resumeDocumentMapper.softDeleteActiveById(existing.getWorkspaceId(), existing.getId());
     }
 
-    private ResumeDocumentEntity findActiveDocument(String id) {
+    private ResumeDocumentEntity findActiveDocument(String workspaceId, String id) {
         String safeId = id == null ? "" : id.trim();
         if (safeId.isBlank()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "简历 ID 不能为空");
         }
-        ResumeDocumentEntity entity = resumeDocumentMapper.selectActiveById(safeId);
+        ResumeDocumentEntity entity = resumeDocumentMapper.selectActiveById(normalizeWorkspaceId(workspaceId), safeId);
         if (entity == null) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "未找到简历");
         }
@@ -175,6 +177,14 @@ public class ResumeDocumentService {
     private String normalizeShareToken(String shareToken) {
         String safeToken = shareToken == null ? "" : shareToken.trim();
         return safeToken.isBlank() ? null : safeToken;
+    }
+
+    private String normalizeWorkspaceId(String workspaceId) {
+        String safeWorkspaceId = workspaceId == null ? "" : workspaceId.trim();
+        if (safeWorkspaceId.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "匿名工作区无效");
+        }
+        return safeWorkspaceId;
     }
 
     private String buildShareUrl(String shareToken) {

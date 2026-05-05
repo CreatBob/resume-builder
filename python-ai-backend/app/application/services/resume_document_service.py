@@ -10,21 +10,30 @@ from app.domain.exceptions.resume_document_exceptions import (
 )
 
 
-def list_resume_documents(repository: ResumeDocumentRepository) -> list[ResumeDocumentDto]:
-    # 业务含义：多份简历工作区进入 remote 模式时，前端首先需要拿到用户可选的简历集合。
-    # application service 只表达“列出未删除简历”这个用例语义，排序和持久化细节由 repository 承接。
-    return repository.list_active()
+def list_resume_documents(workspace_id: str, repository: ResumeDocumentRepository) -> list[ResumeDocumentDto]:
+    # 工作区边界说明：
+    # 1) 路由层负责从 cookie 中解析或创建匿名工作区；
+    # 2) application 层只接收纯字符串工作区 ID，不感知 HTTP；
+    # 3) repository 层必须按工作区过滤，确保列表不会落回旧的全局共享池。
+    safe_workspace_id = _normalize_workspace_id(workspace_id)
+    return repository.list_active(safe_workspace_id)
 
 
-def get_resume_document(document_id: str, repository: ResumeDocumentRepository) -> ResumeDocumentDto:
+def get_resume_document(
+    workspace_id: str,
+    document_id: str,
+    repository: ResumeDocumentRepository,
+) -> ResumeDocumentDto:
+    safe_workspace_id = _normalize_workspace_id(workspace_id)
     safe_id = _normalize_id(document_id)
-    document = repository.get_active(safe_id)
+    document = repository.get_active(safe_workspace_id, safe_id)
     if document is None:
         raise ResumeDocumentNotFoundError("未找到简历")
     return document
 
 
 def create_resume_document(
+    workspace_id: str,
     payload: ResumeDocumentPayloadDto,
     repository: ResumeDocumentRepository,
 ) -> ResumeDocumentDto:
@@ -37,12 +46,17 @@ def create_resume_document(
         content=payload.content,
         version=None,
     )
-    return repository.create(normalized_payload)
+    return repository.create(_normalize_workspace_id(workspace_id), normalized_payload)
 
 
-def enable_resume_share(document_id: str, repository: ResumeDocumentRepository) -> ResumeDocumentDto:
+def enable_resume_share(
+    workspace_id: str,
+    document_id: str,
+    repository: ResumeDocumentRepository,
+) -> ResumeDocumentDto:
+    safe_workspace_id = _normalize_workspace_id(workspace_id)
     safe_id = _normalize_id(document_id)
-    existing = repository.get_active(safe_id)
+    existing = repository.get_active(safe_workspace_id, safe_id)
     if existing is None:
         raise ResumeDocumentNotFoundError("未找到简历")
 
@@ -50,7 +64,7 @@ def enable_resume_share(document_id: str, repository: ResumeDocumentRepository) 
         return existing
 
     share_token = f"share_{uuid4().hex}"
-    shared = repository.enable_share(safe_id, share_token)
+    shared = repository.enable_share(safe_workspace_id, safe_id, share_token)
     if shared is None:
         raise ResumeDocumentNotFoundError("未找到简历")
     return shared
@@ -65,10 +79,12 @@ def get_shared_resume_document(share_token: str, repository: ResumeDocumentRepos
 
 
 def update_resume_document(
+    workspace_id: str,
     document_id: str,
     payload: ResumeDocumentPayloadDto,
     repository: ResumeDocumentRepository,
 ) -> ResumeDocumentDto:
+    safe_workspace_id = _normalize_workspace_id(workspace_id)
     safe_id = _normalize_id(document_id)
     if payload.version is None:
         raise ResumeDocumentBadRequestError("保存简历时必须携带版本号")
@@ -80,18 +96,19 @@ def update_resume_document(
         content=payload.content,
         version=payload.version,
     )
-    updated = repository.update_if_version(safe_id, normalized_payload)
+    updated = repository.update_if_version(safe_workspace_id, safe_id, normalized_payload)
     if updated is None:
-        existing = repository.get_active(safe_id)
+        existing = repository.get_active(safe_workspace_id, safe_id)
         if existing is None:
             raise ResumeDocumentNotFoundError("未找到简历")
         raise ResumeDocumentConflictError("简历已被其他页面更新，请刷新后再编辑")
     return updated
 
 
-def delete_resume_document(document_id: str, repository: ResumeDocumentRepository) -> None:
+def delete_resume_document(workspace_id: str, document_id: str, repository: ResumeDocumentRepository) -> None:
+    safe_workspace_id = _normalize_workspace_id(workspace_id)
     safe_id = _normalize_id(document_id)
-    deleted = repository.soft_delete(safe_id)
+    deleted = repository.soft_delete(safe_workspace_id, safe_id)
     if not deleted:
         raise ResumeDocumentNotFoundError("未找到简历")
 
@@ -112,4 +129,11 @@ def _normalize_share_token(share_token: str | None) -> str:
     value = str(share_token or "").strip()
     if not value:
         raise ResumeDocumentBadRequestError("分享链接无效")
+    return value
+
+
+def _normalize_workspace_id(workspace_id: str | None) -> str:
+    value = str(workspace_id or "").strip()
+    if not value:
+        raise ResumeDocumentBadRequestError("匿名工作区无效")
     return value

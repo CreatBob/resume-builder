@@ -22,10 +22,11 @@ class MySqlResumeDocumentRepository(ResumeDocumentRepository):
     def __init__(self, datasource_url: str, username: str = "", password: str = "") -> None:
         self._bundle = _build_table_bundle(datasource_url, username, password)
 
-    def list_active(self) -> list[ResumeDocumentDto]:
+    def list_active(self, workspace_id: str) -> list[ResumeDocumentDto]:
         table = self._bundle.table
         statement = (
             table.select()
+            .where(table.c.workspace_id == workspace_id)
             .where(table.c.deleted_at.is_(None))
             .order_by(table.c.updated_at.desc(), table.c.id.desc())
         )
@@ -33,10 +34,11 @@ class MySqlResumeDocumentRepository(ResumeDocumentRepository):
             rows = connection.execute(statement).mappings().all()
         return [_row_to_dto(row) for row in rows]
 
-    def get_active(self, document_id: str) -> ResumeDocumentDto | None:
+    def get_active(self, workspace_id: str, document_id: str) -> ResumeDocumentDto | None:
         table = self._bundle.table
         statement = (
             table.select()
+            .where(table.c.workspace_id == workspace_id)
             .where(table.c.id == document_id)
             .where(table.c.deleted_at.is_(None))
             .limit(1)
@@ -58,11 +60,12 @@ class MySqlResumeDocumentRepository(ResumeDocumentRepository):
             row = connection.execute(statement).mappings().first()
         return _row_to_dto(row) if row is not None else None
 
-    def create(self, payload: ResumeDocumentPayloadDto) -> ResumeDocumentDto:
+    def create(self, workspace_id: str, payload: ResumeDocumentPayloadDto) -> ResumeDocumentDto:
         table = self._bundle.table
         document_id = f"resume_{uuid4().hex}"
         values = {
             "id": document_id,
+            "workspace_id": workspace_id,
             "title": payload.title,
             "content_json": payload.content,
             "version": 1,
@@ -70,12 +73,14 @@ class MySqlResumeDocumentRepository(ResumeDocumentRepository):
 
         # 持久化职责说明：
         # 1) 不在应用启动时建表，表结构由 sql/resume_schema.sql 手工创建；
-        # 2) repository 只通过 SQLAlchemy Core 表达读写意图，不把业务规则上移到 API 层；
-        # 3) 创建后重新读取数据库行，确保返回 created_at/updated_at 与 MySQL 实际值一致。
+        # 2) repository 负责按 workspace_id 约束 CRUD，避免匿名工作区再次退回全局共享列表；
+        # 3) repository 只通过 SQLAlchemy Core 表达读写意图，不把业务规则上移到 API 层；
+        # 4) 创建后重新读取数据库行，确保返回 created_at/updated_at 与 MySQL 实际值一致。
         with self._bundle.engine.begin() as connection:
             connection.execute(table.insert().values(**values))
             row = connection.execute(
                 table.select()
+                .where(table.c.workspace_id == workspace_id)
                 .where(table.c.id == document_id)
                 .where(table.c.deleted_at.is_(None))
                 .limit(1)
@@ -87,6 +92,7 @@ class MySqlResumeDocumentRepository(ResumeDocumentRepository):
 
     def update_if_version(
         self,
+        workspace_id: str,
         document_id: str,
         payload: ResumeDocumentPayloadDto,
     ) -> ResumeDocumentDto | None:
@@ -94,6 +100,7 @@ class MySqlResumeDocumentRepository(ResumeDocumentRepository):
         with self._bundle.engine.begin() as connection:
             statement = (
                 table.update()
+                .where(table.c.workspace_id == workspace_id)
                 .where(table.c.id == document_id)
                 .where(table.c.version == payload.version)
                 .where(table.c.deleted_at.is_(None))
@@ -110,6 +117,7 @@ class MySqlResumeDocumentRepository(ResumeDocumentRepository):
 
             row = connection.execute(
                 table.select()
+                .where(table.c.workspace_id == workspace_id)
                 .where(table.c.id == document_id)
                 .where(table.c.deleted_at.is_(None))
                 .limit(1)
@@ -119,11 +127,12 @@ class MySqlResumeDocumentRepository(ResumeDocumentRepository):
             raise ResumeDocumentStorageError("简历更新后读取失败")
         return _row_to_dto(row)
 
-    def enable_share(self, document_id: str, share_token: str) -> ResumeDocumentDto | None:
+    def enable_share(self, workspace_id: str, document_id: str, share_token: str) -> ResumeDocumentDto | None:
         table = self._bundle.table
         with self._bundle.engine.begin() as connection:
             statement = (
                 table.update()
+                .where(table.c.workspace_id == workspace_id)
                 .where(table.c.id == document_id)
                 .where(table.c.deleted_at.is_(None))
                 .values(
@@ -139,6 +148,7 @@ class MySqlResumeDocumentRepository(ResumeDocumentRepository):
 
             row = connection.execute(
                 table.select()
+                .where(table.c.workspace_id == workspace_id)
                 .where(table.c.id == document_id)
                 .where(table.c.deleted_at.is_(None))
                 .limit(1)
@@ -148,11 +158,12 @@ class MySqlResumeDocumentRepository(ResumeDocumentRepository):
             raise ResumeDocumentStorageError("简历分享状态读取失败")
         return _row_to_dto(row)
 
-    def soft_delete(self, document_id: str) -> bool:
+    def soft_delete(self, workspace_id: str, document_id: str) -> bool:
         table = self._bundle.table
         with self._bundle.engine.begin() as connection:
             statement = (
                 table.update()
+                .where(table.c.workspace_id == workspace_id)
                 .where(table.c.id == document_id)
                 .where(table.c.deleted_at.is_(None))
                 .values(
@@ -176,6 +187,7 @@ def _build_table_bundle(datasource_url: str, username: str, password: str) -> _R
         "resume_documents",
         metadata,
         Column("id", String(64), primary_key=True),
+        Column("workspace_id", String(64), nullable=False),
         Column("title", String(120), nullable=False),
         Column("content_json", JSON, nullable=False),
         Column("version", Integer, nullable=False),

@@ -212,7 +212,7 @@ docker compose up -d
 数据库初始化脚本统一放在仓库根目录 `sql/`：
 
 - `sql/interview_schema.sql`：MySQL 面试会话表和消息表，Spring / Python 后端共用。
-- `sql/resume_schema.sql`：MySQL 多份简历文档表，remote 简历存储使用。
+- `sql/resume_schema.sql`：MySQL 多份简历文档表，remote 简历存储与匿名工作区隔离使用。
 - `sql/pgvector_rag_schema.sql`：PostgreSQL + pgvector 的 `rag_document_chunks` 表，Spring / Python 后端共用。
 - `sql/mysql_database_schema.sql`：Docker 初始化 MySQL 数据库时使用，只负责创建 `resume-builder` 数据库。
 - `sql/create_pgvector_resume_builder_database.sql`：手工创建 pgvector 数据库时的辅助脚本，Docker Compose 默认已创建 `resume-builder`，通常不需要执行。
@@ -334,6 +334,7 @@ mvn spring-boot:run
 
 ```dotenv
 # 简历存储模式：frontend-only 使用 local；前后端完整部署如需后端保存多份简历，设置为 remote。
+# remote/auto 远程模式下，主编辑工作区会按 resume_workspace 匿名工作区 cookie 隔离；分享页仍按 share token 匿名访问。
 VITE_RESUME_STORAGE_MODE=local
 
 # 后端端口，必须与 Vite 代理目标保持一致。

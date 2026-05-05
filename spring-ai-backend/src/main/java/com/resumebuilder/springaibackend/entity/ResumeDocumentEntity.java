@@ -13,6 +13,9 @@ public class ResumeDocumentEntity {
     @TableId(value = "id", type = IdType.INPUT)
     private String id;
 
+    @TableField("workspace_id")
+    private String workspaceId;
+
     @TableField("title")
     private String title;
 
@@ -46,6 +49,14 @@ public class ResumeDocumentEntity {
 
     public void setId(String id) {
         this.id = id;
+    }
+
+    public String getWorkspaceId() {
+        return workspaceId;
+    }
+
+    public void setWorkspaceId(String workspaceId) {
+        this.workspaceId = workspaceId;
     }
 
     public String getTitle() {

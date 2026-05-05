@@ -5,6 +5,7 @@
 
     <resultMap id="ResumeDocumentEntityMap" type="com.resumebuilder.springaibackend.entity.ResumeDocumentEntity">
         <id property="id" column="id"/>
+        <result property="workspaceId" column="workspace_id"/>
         <result property="title" column="title"/>
         <result property="contentJson" column="content_json"/>
         <result property="version" column="version"/>
@@ -19,6 +20,7 @@
     <select id="selectActiveDocuments" resultMap="ResumeDocumentEntityMap">
         SELECT
             id,
+            workspace_id,
             title,
             content_json,
             version,
@@ -29,13 +31,15 @@
             updated_at,
             deleted_at
         FROM resume_documents
-        WHERE deleted_at IS NULL
+        WHERE workspace_id = #{workspaceId}
+          AND deleted_at IS NULL
         ORDER BY updated_at DESC, id DESC
     </select>
 
     <select id="selectActiveById" resultMap="ResumeDocumentEntityMap">
         SELECT
             id,
+            workspace_id,
             title,
             content_json,
             version,
@@ -46,7 +50,8 @@
             updated_at,
             deleted_at
         FROM resume_documents
-        WHERE id = #{id}
+        WHERE workspace_id = #{workspaceId}
+          AND id = #{id}
           AND deleted_at IS NULL
         LIMIT 1
     </select>
@@ -54,6 +59,7 @@
     <select id="selectSharedByToken" resultMap="ResumeDocumentEntityMap">
         SELECT
             id,
+            workspace_id,
             title,
             content_json,
             version,
@@ -78,6 +84,7 @@
             version = version + 1,
             updated_at = CURRENT_TIMESTAMP
         WHERE id = #{id}
+          AND workspace_id = #{workspaceId}
           AND version = #{version}
           AND deleted_at IS NULL
     </update>
@@ -90,6 +97,7 @@
             shared_at = CURRENT_TIMESTAMP,
             updated_at = CURRENT_TIMESTAMP
         WHERE id = #{id}
+          AND workspace_id = #{workspaceId}
           AND deleted_at IS NULL
     </update>
 
@@ -99,6 +107,7 @@
             deleted_at = CURRENT_TIMESTAMP,
             updated_at = CURRENT_TIMESTAMP
         WHERE id = #{id}
+          AND workspace_id = #{workspaceId}
           AND deleted_at IS NULL
     </update>
 </mapper>
