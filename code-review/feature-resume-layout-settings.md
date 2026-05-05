@@ -43,7 +43,7 @@
 
 #### 📝 综合评语
 
-> 本轮 code-review-fix 已修复上一版报告中的 1 个 P1 和 2 个 P2。`sql/resume_schema.sql` 已移除 MySQL 8.4 不兼容的 `ADD COLUMN IF NOT EXISTS`，改为通过 `information_schema.columns` 判断列是否存在后再用动态 SQL 补列，并保留索引补偿逻辑；Java 与 Python 两套后端已统一校验 `resume_workspace` cookie 格式，缺失或非法时重新签发匿名工作区，避免异常值写入 `workspace_id`；无关未跟踪文件也已清理。当前代码符合匿名工作区隔离规范，建议通过。
+> 本轮改动将前端功能展示模式从 `VITE_RESUME_STORAGE_MODE` 中拆出，新增 `VITE_APP_FEATURE_MODE` 并默认使用 `resume-only`，使前后端完整部署与纯前端部署都默认只展示简历编辑工作区。`src/App.vue` 在单功能模式下不渲染侧边栏，`full` 模式仍恢复 `简历编辑 / AI面试 / 知识库` 三项主导航。Docker 构建参数、环境变量示例、README 与设计系统能力显示规则已同步更新，且保留编辑页内部 AI 优化入口。未发现阻断提交的问题，建议通过。
 
 #### ✅ 审查结论
 
@@ -51,27 +51,21 @@
 - [ ] **Request Changes**
 - [ ] **Comment Only**
 
-## 修复记录
-
-- 已修复 P1：`sql/resume_schema.sql` 使用 MySQL 8.4 兼容的动态 DDL 补齐 `workspace_id`。
-- 已修复 P2：`ResumeDocumentController.java` 与 `resume_document_routes.py` 统一只接受 `workspace_[0-9a-f]{32}` 工作区 cookie。
-- 已修复 P2：删除无关未跟踪文件 `.codex-memory.jsonl`、`spring-ai-backend/spring-ai-backend.iml`、`docs/superpowers/`。
-- 已补充文档沉淀：`.rules/resume-storage-mandatory-rules.md` 记录匿名工作区 cookie 名称与格式；README 公共配置说明中明确 `resume_workspace`。
-
 ## 验证记录
 
 - 已执行：`git diff --check`，结果通过。
+- 已执行：`npm run lint`，结果通过。
 - 已执行：`npm run type-check`，结果通过。
-- 已执行：PowerShell `Select-String` 检索确认 `sql/resume_schema.sql` 已不存在 `ADD COLUMN IF NOT EXISTS`。
-- 已查阅并遵守：`AGENTS.md`、`.rules/global-rules.md`、`.rules/harness-mcp-workflow-rules.md`、`.rules/code-review-rules.md`、`.rules/code-conventions.md`、`.rules/backend-mandatory-rules.md`、`.rules/python-ai-backend-mandatory-rules.md`、`.rules/spring-ai-backend-mandatory-rules.md`、`.rules/resume-storage-mandatory-rules.md`。
-- 已使用 sub agent 并行修复：SQL 迁移兼容性与双后端 cookie 校验。
+- 已执行：Playwright 默认模式验证，确认首页无左侧侧边栏，不出现 `AI面试` 与 `知识库` 导航，简历编辑、模板预览、导入导出、保存入口仍可见。
+- 已执行：Playwright `VITE_APP_FEATURE_MODE=full` 验证，确认侧边栏正常显示且三项导航恢复。
+- 已检索：`VITE_RESUME_STORAGE_MODE` 仍只被简历存储服务与 store 使用，主导航入口展示改由 `VITE_APP_FEATURE_MODE` 控制。
 
 ## 未执行项与原因
 
-- 未执行 `npm run lint`：当前仓库 lint 脚本包含 `--fix`，会自动改源码，不适合作为只读复审验证。
-- 未执行 `npm run build-only`：本轮修复集中在 SQL、后端 cookie 校验和文档，已用 `npm run type-check` 覆盖前端类型契约，构建会生成产物，复审阶段不主动扩大工作区改动。
-- 未执行真实 MySQL 8.4 导入：当前环境未连接项目 MySQL 实例；建议提交前在本地 Docker MySQL 中执行一次 `sql/resume_schema.sql` 验证旧表升级与新表初始化。
+- 未执行 `npm run build-only`：本轮已通过 lint、type-check 与浏览器级验收，且改动未涉及打包插件或资源生成链路；为避免扩大验证成本，未额外执行构建。
+- 未执行 Docker 镜像构建：当前已静态确认 `Dockerfile` 与 `docker-compose.yml` 的 build args 传递链路，未拉取镜像做完整容器构建。
 
 ## 剩余风险与验证缺口
 
-- 尚未做浏览器级 remote 模式端到端验证；建议后续在真实后端下验证首次请求签发 cookie、刷新后列表保持同一工作区、另一浏览器不共享列表、分享页不依赖工作区四条链路。
+- `VITE_APP_FEATURE_MODE` 是 Vite 构建期变量，Docker 静态站点需要重新构建镜像后才会切换模式；README 已补充该说明。
+- 默认模式下本地浏览器验收因未启动后端，`/api/resumes` 返回 CORS/403 类错误，但该错误来自远程存储后端不可用，不影响本次主导航隐藏与布局验收结论。

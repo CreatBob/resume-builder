@@ -7,11 +7,11 @@ import ModuleSidebar from '@/components/common/ModuleSidebar.vue'
 import type { PrimaryMenuItem, PrimaryMenuKey } from '@/components/common/moduleSidebarTypes'
 import EditorPanel from '@/components/resume/EditorPanel.vue'
 import PreviewPanel from '@/components/resume/PreviewPanel.vue'
-import { getResumeStorageMode } from '@/config/resumeStorageMode'
+import { getAppFeatureMode } from '@/config/appFeatureMode'
 
 const sidebarCollapsed = ref(false)
 const activeMenu = ref<PrimaryMenuKey>('resume-editor')
-const resumeStorageMode = getResumeStorageMode()
+const appFeatureMode = getAppFeatureMode()
 
 const primaryMenus: PrimaryMenuItem[] = [
   {
@@ -35,8 +35,9 @@ const primaryMenus: PrimaryMenuItem[] = [
 ]
 
 const availableMenus = computed(() =>
-  resumeStorageMode === 'local' ? primaryMenus.filter((menu) => menu.key === 'resume-editor') : primaryMenus
+  appFeatureMode === 'resume-only' ? primaryMenus.filter((menu) => menu.key === 'resume-editor') : primaryMenus
 )
+const showSidebar = computed(() => availableMenus.value.length > 1)
 
 watchEffect(() => {
   if (!availableMenus.value.some((menu) => menu.key === activeMenu.value)) {
@@ -51,8 +52,9 @@ function handleSelectMenu(key: PrimaryMenuKey) {
 </script>
 
 <template>
-  <div class="app-layout career-theme">
+  <div class="app-layout career-theme" :class="{ 'no-sidebar': !showSidebar }">
     <ModuleSidebar
+      v-if="showSidebar"
       :collapsed="sidebarCollapsed"
       :active-menu="activeMenu"
       :menus="availableMenus"
@@ -116,6 +118,16 @@ function handleSelectMenu(key: PrimaryMenuKey) {
 @media (max-width: 1280px) {
   .resume-editor-workspace {
     grid-template-columns: minmax(360px, 1fr) minmax(460px, 42vw);
+  }
+}
+
+.app-layout.no-sidebar .resume-editor-workspace {
+  grid-template-columns: minmax(460px, 1fr) minmax(600px, 46vw);
+}
+
+@media (max-width: 1280px) {
+  .app-layout.no-sidebar .resume-editor-workspace {
+    grid-template-columns: minmax(380px, 1fr) minmax(500px, 44vw);
   }
 }
 

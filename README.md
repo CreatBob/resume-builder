@@ -103,6 +103,8 @@ Docker 部署提供三类 profile：
 - `python-ai`：启动前端、Python AI Backend、MySQL 与 pgvector。
 - `frontend-only`：仅启动前端静态站点，适合模板预览或纯前端功能。
 
+前端默认使用 `VITE_APP_FEATURE_MODE=resume-only`，三类 Docker profile 都只展示简历编辑工作区且不显示左侧侧边导航。若需要恢复 `简历编辑 / AI面试 / 知识库` 三项入口，在 `.env` 中设置 `VITE_APP_FEATURE_MODE=full` 后重新构建前端镜像。
+
 Spring AI 后端套件与 Python 后端套件不能同时启动。两套后端都会在内部网络使用 `backend:8999` 供 Nginx 代理，且都会尝试映射宿主机 `8999`，同时启动会造成端口和代理目标冲突。切换后端前必须先执行：
 
 ```bash
@@ -333,6 +335,9 @@ mvn spring-boot:run
 ### 公共最小配置
 
 ```dotenv
+# 前端功能展示模式：默认只开放简历编辑；需要 AI 面试和知识库入口时设置为 full。
+VITE_APP_FEATURE_MODE=resume-only
+
 # 简历存储模式：frontend-only 使用 local；前后端完整部署如需后端保存多份简历，设置为 remote。
 # remote/auto 远程模式下，主编辑工作区会按 resume_workspace 匿名工作区 cookie 隔离；分享页仍按 share token 匿名访问。
 VITE_RESUME_STORAGE_MODE=local
@@ -674,6 +679,8 @@ docker compose --profile spring-ai up --build -d
 
 # Docker Compose 直接启动 Python AI 套件（仅适合 3306/5433 未被宿主机占用）
 docker compose --profile python-ai up --build -d
+
+# 如需展示 AI 面试和知识库入口，先在 .env 中设置 VITE_APP_FEATURE_MODE=full 后重新构建
 
 # 启动 Spring AI 后端
 cd spring-ai-backend
