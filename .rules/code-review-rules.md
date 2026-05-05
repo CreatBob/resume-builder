@@ -1,7 +1,8 @@
 ﻿---
-inclusion: always
+inclusion: manual
 ---
 
+<!-- author: Bob -->
 # Code Review 与修复流程规范
 
 ## 适用范围

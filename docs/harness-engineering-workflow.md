@@ -16,16 +16,17 @@
 
 当前仓库已经具备做 Harness Engineering 的基础骨架，后续任务都应优先复用，而不是绕开：
 
-1. 规则入口固定为 `AGENTS.md` -> `.rules/`。
-2. 产品总图和启动说明固定为 `README.md`。
-3. 前端固定在 `src/`，职责围绕简历编辑、AI 优化、AI 面试。
-4. Python AI 后端固定在 `python-ai-backend/`，采用 `api -> application -> domain <- infrastructure` 边界。
-5. Spring AI 后端固定在 `spring-ai-backend/`，采用 `controller / service / mapper / entity / dto / config / exception / cleaner` 边界。
-6. 前端视觉系统固定参考 `docs/design-system/theme-tokens.md`，默认主题为 `Career Blue Light`，涉及视觉与部署模式能力显示时必须先读取。
-7. 前后端统一接口契约固定为 `'/api/ai/*'`，切换后端实现时前端不改接口路径。
-8. AI 面试会话数据固定落 MySQL，RAG 向量检索固定落 PostgreSQL + pgvector。
-9. 会话建表脚本固定只有一份：`sql/interview_schema.sql`。
-10. 联调端口固定为 `8999`，`spring-ai-backend` 和 `python-ai-backend` 同时只能启动一个。
+1. 启动必读核心入口固定为 `AGENTS.md` -> `.rules/global-rules.md` -> `.rules/harness-mcp-workflow-rules.md`。
+2. `.rules/` 其他专项规则按 `AGENTS.md` 中的规则索引渐进加载。
+3. 产品总图和启动说明固定为 `README.md`，按任务需要读取相关章节。
+4. 前端固定在 `src/`，职责围绕简历编辑、AI 优化、AI 面试。
+5. Python AI 后端固定在 `python-ai-backend/`，采用 `api -> application -> domain <- infrastructure` 边界。
+6. Spring AI 后端固定在 `spring-ai-backend/`，采用 `controller / service / mapper / entity / dto / config / exception / cleaner` 边界。
+7. 前端视觉系统固定参考 `docs/design-system/theme-tokens.md`，默认主题为 `Career Blue Light`，涉及视觉与部署模式能力显示时必须先读取。
+8. 前后端统一接口契约固定为 `'/api/ai/*'`，切换后端实现时前端不改接口路径。
+9. AI 面试会话数据固定落 MySQL，RAG 向量检索固定落 PostgreSQL + pgvector。
+10. 会话建表脚本固定只有一份：`sql/interview_schema.sql`。
+11. 联调端口固定为 `8999`，`spring-ai-backend` 和 `python-ai-backend` 同时只能启动一个。
 
 ## 3. 核心原则
 
@@ -60,11 +61,14 @@
 所有任务默认按下面顺序加载上下文，避免一上来把整个仓库塞满：
 
 1. `AGENTS.md`
-2. `.rules/` 中与任务范围直接相关的规则
-3. 根 `README.md`
-4. 对应子模块 `README.md`
-5. 相关目录结构
-6. 最小必要代码文件
+2. `.rules/global-rules.md`
+3. `.rules/harness-mcp-workflow-rules.md`
+4. `.rules/` 中与任务范围直接相关的专项规则
+5. 根 `README.md` 或子模块 `README.md` 的相关章节
+6. 相关目录结构
+7. 最小必要代码文件
+
+不允许一开始就无差别读取整个仓库，也不允许在任务车道尚未判定前无差别读取全部 `.rules/` 专项规则。
 
 ### 3.4 边界优先于速度
 
@@ -195,12 +199,13 @@
 
 默认只加载完成任务必需的上下文：
 
-1. 规则入口
-2. 模块 README
-3. 相关目录
-4. 最小必要代码
+1. 启动必读核心入口
+2. 按任务车道触发的专项规则
+3. 模块 README 的相关章节
+4. 相关目录
+5. 最小必要代码
 
-不允许一开始就无差别读取整个仓库。
+不允许一开始就无差别读取整个仓库或全部专项规则。
 
 ### 第 3 步：确定任务车道
 

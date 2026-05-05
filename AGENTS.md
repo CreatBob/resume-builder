@@ -3,21 +3,33 @@
 ## 仓库规则文档编码与读取要求（强制）
 1. 读取 `AGENTS.md`、`.rules/*.md`、`README.md` 与相关协作文档时，必须显式按 `UTF-8` 读取；
 
-## `.rules` 规则文档引用（强制）
+## 仓库规则渐进式加载要求（强制）
 
-1. 处理本仓库任务时，必须先阅读并遵守 `.rules/` 目录下的规则文档。
-2. `.rules/` 下规则文档与本文件共同构成仓库级强制约束；如无更高优先级用户指令，不得绕过。
-3. 当前必须遵守的规则文档如下：
+1. 每次会话或任务开始时，遵守以下启动必读核心入口：
+   - `AGENTS.md`
    - `.rules/global-rules.md`
-   - `.rules/code-conventions.md`
-   - `.rules/frontend-mandatory-rules.md`
-   - `.rules/backend-mandatory-rules.md`
-   - `.rules/spring-ai-backend-mandatory-rules.md`
-   - `.rules/python-ai-backend-mandatory-rules.md`
    - `.rules/harness-mcp-workflow-rules.md`
-   - `.rules/resume-storage-mandatory-rules.md`
-   - `.rules/code-review-rules.md`
-4. 若后续 `.rules/` 目录新增规则文档，默认同样属于必须遵守的仓库规则；执行任务前应一并读取。
+2. `AGENTS.md` 负责安全底线与规则索引；`.rules/global-rules.md` 负责基础交互、命令、Git 与通用协作约束；`.rules/harness-mcp-workflow-rules.md` 负责贯穿每次协作的 Harness 工作流、任务拆分、验收闭环与 MCP 使用顺序。
+3. 禁止在任务范围尚未判定前无差别读取 `.rules/` 下全部规则文档。AI 必须先基于用户需求、影响目录、涉及技术栈与协作阶段判断任务车道，再按下方索引补读相关专项规则。
+4. 若执行过程中任务范围扩大或触发新的车道，必须立即按 UTF-8 补读对应专项规则，再继续实现或答复。
+5. 后续 `.rules/` 目录新增规则文档时，默认纳入“按需加载”规则索引；只有确认为所有任务都必须遵守的跨域流程或安全底线，才允许升级为启动必读核心入口。
+
+## `.rules` 专项规则按需加载索引（强制）
+
+| 规则文档 | 触发条件 |
+| --- | --- |
+| `.rules/code-conventions.md` | 修改或生成任何代码、注释、日志、命名、本地化文案、翻译文本、提交信息时读取。 |
+| `.rules/frontend-mandatory-rules.md` | 涉及 `src/` 前端页面、组件、模板、样式、状态、接口定义、服务编排、前端验证时读取。 |
+| `.rules/backend-mandatory-rules.md` | 涉及 `python-ai-backend/`、`spring-ai-backend/`、后端接口、业务编排、数据库、RAG、语音、Realtime 或后端验证时读取。 |
+| `.rules/spring-ai-backend-mandatory-rules.md` | 涉及 `spring-ai-backend/`、Java/Spring AI、MyBatis、Mapper XML、Spring 后端 OpenAI 接入或 pgvector 适配时读取。 |
+| `.rules/python-ai-backend-mandatory-rules.md` | 涉及 `python-ai-backend/`、FastAPI、Python AI 编排、Python OpenAI 接入、Python RAG/Realtime/Agent 能力时读取。 |
+| `.rules/resume-storage-mandatory-rules.md` | 涉及多份简历、`VITE_RESUME_STORAGE_MODE`、`/api/resumes`、本地/远程/auto 存储、简历列表、新建、切换、保存、删除、版本冲突时读取。 |
+| `.rules/code-review-rules.md` | 涉及提交前流程、代码审查、PR/MR review、review 修复、`code-review` 或 `code-review-fix` skill 时读取。 |
+
+相关协作文档也必须按需加载：
+- 涉及项目总览、启动、部署、环境变量、目录结构或接口摘要时，  读取`README.md` 的相关章节，而不是默认全文塞入上下文。
+- 涉及 Harness Engineering 背景、任务路由、知识回写或熵治理细节时，  读取`docs/harness-engineering-workflow.md` 的相关章节。
+- 涉及前端视觉、样式、主题、布局、部署模式能力显示或页面信息架构时，  读取`.rules/frontend-mandatory-rules.md` 与 `docs/design-system/theme-tokens.md` 的相关章节。
 
 本规范适用于本仓库内所有 AI 协作与自动化改动。
 

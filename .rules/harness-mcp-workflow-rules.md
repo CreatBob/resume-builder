@@ -1,11 +1,15 @@
-﻿<!-- author: Bob -->
+﻿---
+inclusion: always
+---
+
+<!-- author: Bob -->
 # Resume Builder Harness 与 MCP 工作流规则
 
 ## 1. 规则定位
 
 本文档用于定义 `resume-builder` 仓库在日常开发、联调、审查、排障与知识回写过程中，AI 必须如何使用 Harness 与 MCP 能力。
 
-本文档属于仓库级强制规则，适用于以下场景：
+本文档属于仓库级强制规则，是每次仓库协作都必须贯穿遵守的启动必读核心规则之一。它适用于以下场景：
 
 1. 前端开发与交互验证。
 2. `python-ai-backend/` 开发与 OpenAI 能力接入。
@@ -69,10 +73,11 @@ AI 在开发任务中，不得“看到 MCP 就用”，必须先判断当前处
 无论 MCP 返回什么信息，AI 都必须继续遵守：
 
 1. `AGENTS.md`
-2. `.rules/` 下对应规则文档
-3. 根 `README.md`
-4. 子模块 `README.md`
-5. 当前代码目录边界
+2. `.rules/global-rules.md`
+3. `.rules/harness-mcp-workflow-rules.md`
+4. 按 `AGENTS.md` 规则索引触发的专项规则文档
+5. 按任务需要读取的根 `README.md` 或子模块 `README.md` 相关章节
+6. 当前代码目录边界
 
 ### 3.4 新功能必须先拆分再执行
 
@@ -215,17 +220,21 @@ AI 在开发任务中，不得“看到 MCP 就用”，必须先判断当前处
 默认顺序：
 
 1. 读取 `AGENTS.md`
-2. 读取 `.rules/` 对应规则
-3. 读取根 `README.md`
-4. 读取相关子模块 `README.md`
-5. 判断是否需要 `github`
-6. 判断是否需要 `openaiDeveloperDocs`
+2. 读取 `.rules/global-rules.md`
+3. 读取 `.rules/harness-mcp-workflow-rules.md`
+4. 基于用户需求、影响目录、技术栈与协作阶段判断任务车道
+5. 按 `AGENTS.md` 规则索引读取对应专项规则
+6. 按需要读取根 `README.md` 或相关子模块 `README.md` 的相关章节
+7. 判断是否需要 `github`
+8. 判断是否需要 `openaiDeveloperDocs`
 
 此阶段强制要求：
 
 1. 先做仓库上下文判断，再决定是否调用外部 MCP。
 2. 如果是远程协作任务，优先补 `github` 上下文。
 3. 如果是 OpenAI 相关任务，优先补 `openaiDeveloperDocs` 上下文。
+4. 禁止在任务车道尚未判定前无差别读取 `.rules/` 下全部专项规则。
+5. 如果任务范围变化并触发新的规则车道，必须立即补读对应专项规则。
 
 ### 5.2 方案设计与调研阶段
 
@@ -371,56 +380,61 @@ AI 在开发任务中，不得“看到 MCP 就用”，必须先判断当前处
 
 标准顺序：
 
-1. 读取 `AGENTS.md` 与前端规则
-2. 如涉及视觉、样式、主题、页面信息架构或部署模式能力显示，读取 `docs/design-system/theme-tokens.md`
-3. 输出并确认细化任务清单
-4. 生成需求文档与验收细节 list
-5. 读取相关组件 / 模板 / 服务代码
-6. 按顺序实现改动并更新文档状态
-7. 执行允许的命令验证
-8. 使用 `playwright` 验证页面与交互
-9. 按验收细节 list 全量验收
-10. 如有稳定变化，回写文档
+1. 读取启动必读核心入口：`AGENTS.md`、`.rules/global-rules.md`、`.rules/harness-mcp-workflow-rules.md`
+2. 读取 `.rules/frontend-mandatory-rules.md`
+3. 如涉及视觉、样式、主题、页面信息架构或部署模式能力显示，读取 `docs/design-system/theme-tokens.md`
+4. 输出并确认细化任务清单
+5. 生成需求文档与验收细节 list
+6. 读取相关组件 / 模板 / 服务代码
+7. 按顺序实现改动并更新文档状态
+8. 执行允许的命令验证
+9. 使用 `playwright` 验证页面与交互
+10. 按验收细节 list 全量验收
+11. 如有稳定变化，回写文档
 
 ### 7.2 Python AI 后端开发
 
 标准顺序：
 
-1. 读取 `AGENTS.md`、后端规则、Python AI 后端规则
-2. 输出并确认细化任务清单
-3. 生成需求文档与验收细节 list
-4. 涉及 OpenAI 能力时先查 `openaiDeveloperDocs`
-5. 按顺序实现代码改动并更新文档状态
-6. 做允许范围内的健康检查或接口验证
-7. 按验收细节 list 全量验收
-8. 如接口或接入策略稳定变化，回写文档
+1. 读取启动必读核心入口：`AGENTS.md`、`.rules/global-rules.md`、`.rules/harness-mcp-workflow-rules.md`
+2. 读取 `.rules/backend-mandatory-rules.md` 与 `.rules/python-ai-backend-mandatory-rules.md`
+3. 输出并确认细化任务清单
+4. 生成需求文档与验收细节 list
+5. 涉及 OpenAI 能力时先查 `openaiDeveloperDocs`
+6. 按顺序实现代码改动并更新文档状态
+7. 做允许范围内的健康检查或接口验证
+8. 按验收细节 list 全量验收
+9. 如接口或接入策略稳定变化，回写文档
 
 ### 7.3 Spring AI 后端开发
 
 标准顺序：
 
-1. 读取 `AGENTS.md`、后端规则、Spring AI 后端规则
-2. 输出并确认细化任务清单
-3. 生成需求文档与验收细节 list
-4. 涉及 OpenAI 能力时先查 `openaiDeveloperDocs`
-5. 涉及 SQL 时先确认 `mapper.xml` 与 SQL 目录规则
-6. 按顺序实现代码改动并更新文档状态
-7. 做允许范围内的健康检查或接口验证
-8. 按验收细节 list 全量验收
-9. 如接入策略稳定变化，回写文档
+1. 读取启动必读核心入口：`AGENTS.md`、`.rules/global-rules.md`、`.rules/harness-mcp-workflow-rules.md`
+2. 读取 `.rules/backend-mandatory-rules.md` 与 `.rules/spring-ai-backend-mandatory-rules.md`
+3. 输出并确认细化任务清单
+4. 生成需求文档与验收细节 list
+5. 涉及 OpenAI 能力时先查 `openaiDeveloperDocs`
+6. 涉及 SQL 时先确认 `mapper.xml` 与 SQL 目录规则
+7. 按顺序实现代码改动并更新文档状态
+8. 做允许范围内的健康检查或接口验证
+9. 按验收细节 list 全量验收
+10. 如接入策略稳定变化，回写文档
 
 ### 7.4 PR 审查与修复
 
 标准顺序：
 
-1. 先查 `github` 获取 PR、Review、Checks 上下文
-2. 输出并确认细化修复任务清单
-3. 生成需求文档与验收细节 list
-4. 再读取本地代码与仓库规则
-5. 按顺序实施修复并更新文档状态
-6. 做允许范围内验证
-7. 按验收细节 list 全量验收
-8. 如规则不足以约束同类问题，补规则或 runbook
+1. 读取启动必读核心入口：`AGENTS.md`、`.rules/global-rules.md`、`.rules/harness-mcp-workflow-rules.md`
+2. 读取 `.rules/code-review-rules.md`
+3. 先查 `github` 获取 PR、Review、Checks 上下文
+4. 输出并确认细化修复任务清单
+5. 生成需求文档与验收细节 list
+6. 再读取本地代码与相关专项规则
+7. 按顺序实施修复并更新文档状态
+8. 做允许范围内验证
+9. 按验收细节 list 全量验收
+10. 如规则不足以约束同类问题，补规则或 runbook
 
 ## 8. MCP 不可用时的兜底规则
 

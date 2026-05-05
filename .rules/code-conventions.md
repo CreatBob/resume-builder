@@ -1,7 +1,8 @@
 ﻿---
-inclusion: always
+inclusion: manual
 ---
 
+<!-- author: Bob -->
 # 代码规范与最佳实践
 
 ## 通用代码规范
