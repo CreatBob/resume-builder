@@ -586,8 +586,10 @@ select:disabled {
 }
 
 .career-theme .preview-scroll {
-  overflow: auto;
-  padding: 0 var(--space-2) var(--space-2);
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-gutter: stable;
+  padding: 0 var(--space-4) var(--space-3);
 }
 
 .career-theme .paper {
@@ -873,6 +875,10 @@ select:disabled {
 }
 
 @media (max-width: 760px) {
+  .career-theme .preview-scroll {
+    overflow-x: auto;
+  }
+
   .career-theme > .sidebar,
   .career-theme .app-layout > .sidebar {
     width: 100%;

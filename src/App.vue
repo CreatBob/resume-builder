@@ -82,6 +82,10 @@ function handleSelectMenu(key: PrimaryMenuKey) {
   background: var(--color-bg-app);
 }
 
+.app-layout.no-sidebar {
+  justify-content: center;
+}
+
 .workbench-shell {
   flex: 1;
   min-width: 0;
@@ -122,12 +126,45 @@ function handleSelectMenu(key: PrimaryMenuKey) {
 }
 
 .app-layout.no-sidebar .resume-editor-workspace {
-  grid-template-columns: minmax(460px, 1fr) minmax(600px, 46vw);
+  grid-template-columns: minmax(540px, 1fr) 860px;
+  column-gap: var(--space-5);
+  width: min(100%, 1840px);
+  margin: 0 auto;
+  padding: 0 var(--space-5);
 }
 
-@media (max-width: 1280px) {
+@media (max-width: 1400px) {
   .app-layout.no-sidebar .resume-editor-workspace {
-    grid-template-columns: minmax(380px, 1fr) minmax(500px, 44vw);
+    grid-template-columns: minmax(450px, 1fr) 860px;
+    column-gap: var(--space-4);
+    padding: 0 var(--space-3);
+  }
+}
+
+@media (max-width: 1350px) {
+  .app-layout.no-sidebar .resume-editor-workspace {
+    display: flex;
+    flex-direction: column;
+    overflow: auto;
+    width: 100%;
+    padding: 0;
+  }
+
+  .app-layout.no-sidebar .editor-panel,
+  .app-layout.no-sidebar .preview-panel {
+    flex: 0 0 auto;
+  }
+
+  .app-layout.no-sidebar .editor-panel {
+    height: 70vh;
+    min-height: 520px;
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
+
+  .app-layout.no-sidebar .preview-panel {
+    height: 80vh;
+    min-height: 620px;
   }
 }
 
@@ -137,11 +174,21 @@ function handleSelectMenu(key: PrimaryMenuKey) {
     flex-direction: column;
     overflow: auto;
   }
+
+  .app-layout.no-sidebar .resume-editor-workspace {
+    width: 100%;
+    padding: 0;
+  }
 }
 
 @media (max-width: 760px) {
   .app-layout {
     flex-direction: column;
+  }
+
+  .app-layout.no-sidebar .preview-panel {
+    height: auto;
+    min-height: 70vh;
   }
 }
 </style>
