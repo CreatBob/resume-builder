@@ -1,4 +1,4 @@
-﻿<!-- author: jf -->
+﻿<!-- author: Bob -->
 <script setup lang="ts">
 import { computed } from 'vue'
 import { toHref } from '../../shared/metaIcons'
@@ -92,7 +92,7 @@ function projectHref(link: string): string {
 
       <div class="hero-panel">
         <div class="hero-panel-inner">
-          <h1 class="name">{{ store.basicInfo.name || '姓名' }}</h1>
+          <h1 class="name">{{ store.basicInfo.name }}</h1>
           <p v-if="heroContactLine" class="hero-line">{{ heroContactLine }}</p>
           <p v-if="heroBaseMeta" class="hero-line hero-line-secondary">{{ heroBaseMeta }}</p>
 

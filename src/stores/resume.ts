@@ -144,10 +144,129 @@ function genId(): string {
   return `item_${Date.now()}_${++_idCounter}`
 }
 
+const SAMPLE_AVATAR = `data:image/svg+xml;utf8,${encodeURIComponent(`
+<svg xmlns="http://www.w3.org/2000/svg" width="240" height="300" viewBox="0 0 240 300">
+  <defs>
+    <linearGradient id="bg" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0%" stop-color="#dbeafe" />
+      <stop offset="100%" stop-color="#bfdbfe" />
+    </linearGradient>
+  </defs>
+  <rect width="240" height="300" fill="url(#bg)" />
+  <circle cx="120" cy="96" r="52" fill="#ffffff" fill-opacity="0.82" />
+  <path d="M52 260c14-54 56-84 108-84s94 30 108 84" fill="#ffffff" fill-opacity="0.82" />
+  <text x="120" y="284" text-anchor="middle" font-size="28" font-family="Arial, sans-serif" fill="#1d4ed8">CV</text>
+</svg>
+`)}` as const
+
 function createEmptyBasicLink(): BasicLink {
   return {
     text: '',
     url: '',
+  }
+}
+
+function createDefaultModules(): ModuleConfig[] {
+  return [
+    { key: 'basicInfo', label: '基本信息', icon: '👤', visible: true },
+    { key: 'education', label: '教育经历', icon: '🎓', visible: true },
+    { key: 'skills', label: '专业技能', icon: '⚡', visible: true },
+    { key: 'workExperience', label: '工作经历', icon: '💼', visible: true },
+    { key: 'projectExperience', label: '项目经历', icon: '📁', visible: true },
+    { key: 'awards', label: '荣誉奖项', icon: '🏆', visible: false },
+    { key: 'selfIntro', label: '个人简介', icon: '📝', visible: false },
+  ]
+}
+
+function createSampleBasicInfo(): BasicInfo {
+  return {
+    name: '陈一鸣',
+    phone: '13818996520',
+    email: 'chenyiming@example.com',
+    age: '26岁',
+    gender: '男',
+    location: '深圳',
+    jobTitle: '全栈开发工程师',
+    educationLevel: '本科',
+    avatar: SAMPLE_AVATAR,
+    workYears: '4年',
+    currentStatus: '离职-随时到岗',
+    expectedLocation: '深圳',
+    expectedSalary: '25K-35K',
+    website: {
+      text: '作品集',
+      url: 'https://portfolio.example.com',
+    },
+    wechat: 'chenyiming_cv',
+    currentCity: '深圳',
+    github: {
+      text: 'github.com/chenyiming',
+      url: 'https://github.com/chenyiming',
+    },
+    blog: createEmptyBasicLink(),
+    customItems: [],
+  }
+}
+
+function createSampleResumeData(): ResumeData {
+  return {
+    modules: createDefaultModules(),
+    selectedTemplateKey: 'default',
+    layoutSettings: { ...DEFAULT_RESUME_LAYOUT_SETTINGS },
+    basicInfo: createSampleBasicInfo() as unknown as Record<string, unknown>,
+    educationList: [
+      {
+        id: genId(),
+        school: '华南理工大学',
+        college: '计算机学院',
+        major: '软件工程',
+        degree: '本科',
+        startDate: '2018.09',
+        endDate: '2022.06',
+        gpa: '',
+        description: '<p>主修课程：数据结构、操作系统、计算机网络、数据库系统。</p>',
+        type: '统招本科',
+        location: '广州',
+      },
+    ],
+    skills:
+      '<ul><li>熟悉 Vue 3、TypeScript、Pinia、Vite，能够独立完成中后台与内容编辑器开发。</li><li>具备 Node.js / Java 接口协作经验，能够推动前后端契约落地。</li><li>关注性能与交互细节，熟悉 A4 预览、导出链路和富文本展示。</li></ul>',
+    workList: [
+      {
+        id: genId(),
+        company: '星河科技有限公司',
+        department: '平台研发部',
+        position: '高级前端工程师',
+        startDate: '2022.07',
+        endDate: '',
+        location: '深圳',
+        description:
+          '<ul><li>负责简历编辑器与 A4 实时预览能力建设，支持 9 套模板切换。</li><li>推动导出与自动保存体验优化，页面渲染性能提升 30%。</li></ul>',
+      },
+    ],
+    projectList: [
+      {
+        id: genId(),
+        name: 'AI 简历助手',
+        role: '项目负责人',
+        startDate: '2024.03',
+        endDate: '',
+        link: 'https://portfolio.example.com/resume-ai',
+        introduction: '<p>面向求职场景的简历编辑、优化与模拟面试一体化平台。</p>',
+        mainWork:
+          '<ol><li>设计模块化模板渲染方案，实现内容与模板解耦。</li><li>接入 AI 优化能力，支持按模块生成建议并一键应用。</li></ol>',
+      },
+    ],
+    awardList: [
+      {
+        id: genId(),
+        name: '校级优秀毕业生',
+        date: '2022.06',
+        description: '<p>综合成绩排名前 5%，获评优秀毕业生。</p>',
+      },
+    ],
+    selfIntro:
+      '<p>4 年 Web 与 AI 产品开发经验，擅长 Vue 3、TypeScript、Node.js 与用户体验优化，能够独立完成从需求拆解到上线交付的闭环。</p>',
   }
 }
 
@@ -217,86 +336,17 @@ function normalizeLayoutSettings(value: unknown): ResumeLayoutSettings {
 }
 
 export const useResumeStore = defineStore('resume', () => {
-  const modules = reactive<ModuleConfig[]>([
-    { key: 'basicInfo', label: '基本信息', icon: '👤', visible: true },
-    { key: 'education', label: '教育经历', icon: '🎓', visible: true },
-    { key: 'skills', label: '专业技能', icon: '⚡', visible: true },
-    { key: 'workExperience', label: '工作经历', icon: '💼', visible: true },
-    { key: 'projectExperience', label: '项目经历', icon: '📁', visible: true },
-    { key: 'awards', label: '荣誉奖项', icon: '🏆', visible: false },
-    { key: 'selfIntro', label: '个人简介', icon: '📝', visible: false },
-  ])
-
-  const basicInfo = reactive<BasicInfo>({
-    name: '',
-    phone: '',
-    email: '',
-    age: '',
-    gender: '',
-    location: '',
-    jobTitle: '',
-    educationLevel: '',
-    avatar: '',
-    workYears: '',
-    currentStatus: '',
-    expectedLocation: '',
-    expectedSalary: '',
-    website: createEmptyBasicLink(),
-    wechat: '',
-    currentCity: '',
-    github: createEmptyBasicLink(),
-    blog: createEmptyBasicLink(),
-    customItems: [],
-  })
-
-  const educationList = reactive<EducationEntry[]>([
-    {
-      id: genId(),
-      school: '',
-      college: '',
-      major: '',
-      degree: '',
-      startDate: '',
-      endDate: '',
-      gpa: '',
-      description: '',
-      type: '',
-      location: '',
-    },
-  ])
-
-  const skills = ref('')
-
-  const workList = reactive<WorkEntry[]>([
-    {
-      id: genId(),
-      company: '',
-      department: '',
-      position: '',
-      startDate: '',
-      endDate: '',
-      location: '',
-      description: '',
-    },
-  ])
-
-  const projectList = reactive<ProjectEntry[]>([
-    {
-      id: genId(),
-      name: '',
-      role: '',
-      startDate: '',
-      endDate: '',
-      link: '',
-      introduction: '',
-      mainWork: '',
-    },
-  ])
-
-  const awardList = reactive<AwardEntry[]>([])
-  const selfIntro = ref('')
-  const selectedTemplateKey = ref<ResumeTemplateKey>('default')
-  const layoutSettings = reactive<ResumeLayoutSettings>({ ...DEFAULT_RESUME_LAYOUT_SETTINGS })
+  const initialResumeData = createSampleResumeData()
+  const modules = reactive<ModuleConfig[]>(initialResumeData.modules as ModuleConfig[])
+  const basicInfo = reactive<BasicInfo>(initialResumeData.basicInfo as unknown as BasicInfo)
+  const educationList = reactive<EducationEntry[]>(initialResumeData.educationList as EducationEntry[])
+  const skills = ref(initialResumeData.skills ?? '')
+  const workList = reactive<WorkEntry[]>(initialResumeData.workList as WorkEntry[])
+  const projectList = reactive<ProjectEntry[]>(initialResumeData.projectList as ProjectEntry[])
+  const awardList = reactive<AwardEntry[]>(initialResumeData.awardList as AwardEntry[])
+  const selfIntro = ref(initialResumeData.selfIntro ?? '')
+  const selectedTemplateKey = ref<ResumeTemplateKey>(normalizeResumeTemplateKey(initialResumeData.selectedTemplateKey))
+  const layoutSettings = reactive<ResumeLayoutSettings>(normalizeLayoutSettings(initialResumeData.layoutSettings))
   const nextAutoSaveAt = ref<number | null>(null)
   const lastSavedAt = ref<number | null>(null)
   const lastSaveMode = ref<'auto' | 'manual' | null>(null)
@@ -680,7 +730,7 @@ export const useResumeStore = defineStore('resume', () => {
     if (!saved) return
     const created = await resumeStorage.create({
       title,
-      content: createEmptyResumeData(),
+      content: createSampleResumeData(),
     })
     upsertResumeDocument(created)
     await switchResume(created.id, false)
@@ -748,79 +798,6 @@ export const useResumeStore = defineStore('resume', () => {
     }
 
     return shareInfo
-  }
-
-  function createEmptyResumeData(): ResumeData {
-    return {
-      modules: [
-        { key: 'basicInfo', label: '基本信息', icon: '👤', visible: true },
-        { key: 'education', label: '教育经历', icon: '🎓', visible: true },
-        { key: 'skills', label: '专业技能', icon: '⚡', visible: true },
-        { key: 'workExperience', label: '工作经历', icon: '💼', visible: true },
-        { key: 'projectExperience', label: '项目经历', icon: '📁', visible: true },
-        { key: 'awards', label: '荣誉奖项', icon: '🏆', visible: false },
-        { key: 'selfIntro', label: '个人简介', icon: '📝', visible: false },
-      ],
-      selectedTemplateKey: 'default',
-      layoutSettings: { ...DEFAULT_RESUME_LAYOUT_SETTINGS },
-      basicInfo: {
-        name: '',
-        phone: '',
-        email: '',
-        age: '',
-        gender: '',
-        location: '',
-        jobTitle: '',
-        educationLevel: '',
-        avatar: '',
-        workYears: '',
-        currentStatus: '',
-        expectedLocation: '',
-        expectedSalary: '',
-        website: createEmptyBasicLink(),
-        wechat: '',
-        currentCity: '',
-        github: createEmptyBasicLink(),
-        blog: createEmptyBasicLink(),
-        customItems: [],
-      },
-      educationList: [{
-        id: genId(),
-        school: '',
-        college: '',
-        major: '',
-        degree: '',
-        startDate: '',
-        endDate: '',
-        gpa: '',
-        description: '',
-        type: '',
-        location: '',
-      }],
-      skills: '',
-      workList: [{
-        id: genId(),
-        company: '',
-        department: '',
-        position: '',
-        startDate: '',
-        endDate: '',
-        location: '',
-        description: '',
-      }],
-      projectList: [{
-        id: genId(),
-        name: '',
-        role: '',
-        startDate: '',
-        endDate: '',
-        link: '',
-        introduction: '',
-        mainWork: '',
-      }],
-      awardList: [],
-      selfIntro: '',
-    }
   }
 
   function upsertResumeDocument(doc: ResumeDocument) {

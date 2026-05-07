@@ -631,6 +631,11 @@ onUnmounted(() => {
   background: var(--state-hover-bg);
 }
 
+.btn-import:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
 .module-hint {
   color: var(--color-text-tertiary);
   font-size: var(--font-size-xs);
@@ -678,6 +683,12 @@ onUnmounted(() => {
 
   .btn-import {
     width: 100%;
+  }
+
+  .editor-header-actions {
+    width: 100%;
+    flex-direction: column;
+    align-items: stretch;
   }
 }
 </style>

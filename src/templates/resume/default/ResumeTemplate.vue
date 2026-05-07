@@ -1,6 +1,7 @@
 ﻿<script setup lang="ts">
 import { iconPaths, iconViewBox, isFilledIcon } from '../../shared/metaIcons'
 import { useResumeTemplateData } from '../../shared/useResumeTemplateData'
+// author: Bob
 
 const {
   store,
@@ -19,7 +20,7 @@ const {
   <div class="resume-template-default" :style="layoutStyle">
     <header v-if="store.isModuleVisible('basicInfo')" class="resume-header">
       <div class="header-main">
-        <h1 class="name">{{ store.basicInfo.name || '姓名' }}</h1>
+        <h1 class="name">{{ store.basicInfo.name }}</h1>
 
         <div class="contact-line">
           <span v-for="item in lineOneMeta" :key="item.key" class="meta-item">

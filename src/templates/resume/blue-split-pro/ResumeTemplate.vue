@@ -64,7 +64,7 @@ function subLine(values: Array<string | undefined>): string {
           <img v-if="store.basicInfo.avatar" :src="store.basicInfo.avatar" alt="头像" />
           <div v-else class="avatar-placeholder">头像</div>
         </div>
-        <h1 class="name">{{ store.basicInfo.name || '姓名' }}</h1>
+        <h1 class="name">{{ store.basicInfo.name }}</h1>
         <p class="job">{{ store.basicInfo.jobTitle || '岗位方向' }}</p>
       </div>
 
