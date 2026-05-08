@@ -1,4 +1,4 @@
-﻿<!-- author: jf -->
+﻿<!-- author: Bob -->
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useResumeTemplateData } from '../../shared/useResumeTemplateData'
@@ -376,7 +376,7 @@ function subLine(values: Array<string | undefined>): string {
 .entry-rich {
   margin-top: 3px;
   color: #111827;
-  font-size: 13px;
+  font-size: var(--resume-content-font-size);
   line-height: var(--resume-content-line-height);
 }
 

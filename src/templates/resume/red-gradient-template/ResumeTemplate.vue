@@ -499,7 +499,7 @@ function projectHref(link: string): string {
 .entry-rich {
   margin-top: 4px;
   color: #1f1a1a;
-  font-size: 13px;
+  font-size: var(--resume-content-font-size);
   line-height: var(--resume-content-line-height);
 }
 

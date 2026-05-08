@@ -1,4 +1,4 @@
-﻿<!-- author: jf -->
+﻿<!-- author: Bob -->
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useResumeTemplateData } from '../../shared/useResumeTemplateData'
@@ -354,7 +354,7 @@ const customMetaLine = computed(() => customBasicMeta.value.map((item) => item.t
 .entry-rich {
   margin-top: 3px;
   color: #111;
-  font-size: 14px;
+  font-size: var(--resume-content-font-size);
   line-height: var(--resume-content-line-height);
 }
 

@@ -95,6 +95,7 @@ function normalizeLayoutSettings(value: ResumeData['layoutSettings']): ResumeLay
     moduleMarginTop: Number(source?.moduleMarginTop ?? DEFAULT_RESUME_LAYOUT_SETTINGS.moduleMarginTop),
     moduleMarginBottom: Number(source?.moduleMarginBottom ?? DEFAULT_RESUME_LAYOUT_SETTINGS.moduleMarginBottom),
     sectionTitleContentGap: Number(source?.sectionTitleContentGap ?? DEFAULT_RESUME_LAYOUT_SETTINGS.sectionTitleContentGap),
+    contentFontSize: Number(source?.contentFontSize ?? DEFAULT_RESUME_LAYOUT_SETTINGS.contentFontSize),
     contentLineHeight: Number(source?.contentLineHeight ?? DEFAULT_RESUME_LAYOUT_SETTINGS.contentLineHeight),
   }
 }

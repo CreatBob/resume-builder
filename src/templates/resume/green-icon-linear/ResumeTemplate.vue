@@ -2,6 +2,7 @@
 import { computed } from 'vue'
 import { iconPaths, iconViewBox, isFilledIcon, toHref, type MetaIconKey } from '../../shared/metaIcons'
 import { useResumeTemplateData } from '../../shared/useResumeTemplateData'
+// author: Bob
 
 const {
   store,
@@ -588,7 +589,7 @@ function projectHref(link: string): string {
 .entry-rich {
   margin-top: 3px;
   color: #1f2933;
-  font-size: 12px;
+  font-size: var(--resume-content-font-size);
   line-height: var(--resume-content-line-height);
 }
 

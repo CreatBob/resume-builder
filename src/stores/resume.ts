@@ -103,6 +103,7 @@ export interface ResumeLayoutSettings {
   moduleMarginTop: number
   moduleMarginBottom: number
   sectionTitleContentGap: number
+  contentFontSize: number
   contentLineHeight: number
 }
 
@@ -126,6 +127,7 @@ export const DEFAULT_RESUME_LAYOUT_SETTINGS: ResumeLayoutSettings = {
   moduleMarginTop: 0,
   moduleMarginBottom: 8,
   sectionTitleContentGap: 6,
+  contentFontSize: 14,
   contentLineHeight: 1.75,
 }
 
@@ -136,6 +138,7 @@ export const RESUME_LAYOUT_LIMITS: Record<ResumeLayoutSettingKey, { min: number;
   moduleMarginTop: { min: 0, max: 32, step: 1 },
   moduleMarginBottom: { min: 0, max: 40, step: 1 },
   sectionTitleContentGap: { min: 0, max: 28, step: 1 },
+  contentFontSize: { min: 10, max: 18, step: 1 },
   contentLineHeight: { min: 1, max: 2.4, step: 0.05 },
 }
 
@@ -331,6 +334,7 @@ function normalizeLayoutSettings(value: unknown): ResumeLayoutSettings {
       DEFAULT_RESUME_LAYOUT_SETTINGS.sectionTitleContentGap,
       'sectionTitleContentGap'
     ),
+    contentFontSize: normalizeNumber(incoming.contentFontSize, DEFAULT_RESUME_LAYOUT_SETTINGS.contentFontSize, 'contentFontSize'),
     contentLineHeight: normalizeNumber(incoming.contentLineHeight, DEFAULT_RESUME_LAYOUT_SETTINGS.contentLineHeight, 'contentLineHeight'),
   }
 }

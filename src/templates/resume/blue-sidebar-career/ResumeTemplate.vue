@@ -389,7 +389,7 @@ function subLine(values: Array<string | undefined>): string {
 .entry-rich {
   margin-top: 3px;
   color: #162338;
-  font-size: 14px;
+  font-size: var(--resume-content-font-size);
   line-height: var(--resume-content-line-height);
 }
 

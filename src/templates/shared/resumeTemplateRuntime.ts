@@ -47,6 +47,7 @@ export function createLayoutStyle(layoutSettings: ResumeLayoutSettings): CSSProp
     '--resume-module-margin-top': `${layoutSettings.moduleMarginTop}px`,
     '--resume-module-margin-bottom': `${layoutSettings.moduleMarginBottom}px`,
     '--resume-section-title-content-gap': `${layoutSettings.sectionTitleContentGap}px`,
+    '--resume-content-font-size': `${layoutSettings.contentFontSize}px`,
     '--resume-content-line-height': String(layoutSettings.contentLineHeight),
   } as CSSProperties
 }

@@ -23,6 +23,8 @@ const exportMenuOpen = ref(false)
 const exportMenuRef = ref<HTMLElement | null>(null)
 const layoutMenuOpen = ref(false)
 const layoutMenuRef = ref<HTMLElement | null>(null)
+const fontSizeMenuOpen = ref(false)
+const fontSizeMenuRef = ref<HTMLElement | null>(null)
 const lineHeightMenuOpen = ref(false)
 const lineHeightMenuRef = ref<HTMLElement | null>(null)
 const templatePickerOpen = ref(false)
@@ -43,6 +45,13 @@ const currentTemplate = computed<ResumeTemplateDefinition>(
 )
 const currentTemplateComponent = computed(() => currentTemplate.value.component)
 const a4TemplateLabel = computed(() => `A4 / ${currentTemplate.value.name}`)
+const fontSizePresets = [
+  { label: '小号', value: 11 },
+  { label: '精简', value: 12 },
+  { label: '舒适', value: 13 },
+  { label: '默认', value: 14 },
+  { label: '大号', value: 15 },
+]
 const lineHeightPresets = [
   { label: '紧凑', value: 1.2 },
   { label: '标准', value: 1.4 },
@@ -56,6 +65,7 @@ const currentLineHeightLabel = computed(() => {
   const preset = lineHeightPresets.find((item) => Math.abs(item.value - current) < 0.01)
   return preset ? `行距 ${preset.value.toFixed(2)}` : `行距 ${current.toFixed(2)}`
 })
+const currentFontSizeLabel = computed(() => `字号 ${store.layoutSettings.contentFontSize}px`)
 
 function waitNextFrame(): Promise<void> {
   return new Promise((resolve) => requestAnimationFrame(() => resolve()))
@@ -84,6 +94,7 @@ function openTemplatePicker() {
   templatePickerOpen.value = true
   exportMenuOpen.value = false
   layoutMenuOpen.value = false
+  fontSizeMenuOpen.value = false
   lineHeightMenuOpen.value = false
 }
 
@@ -133,6 +144,7 @@ function handleExportTriggerClick() {
   if (exporting.value) return
   exportMenuOpen.value = !exportMenuOpen.value
   layoutMenuOpen.value = false
+  fontSizeMenuOpen.value = false
   lineHeightMenuOpen.value = false
 }
 
@@ -140,6 +152,7 @@ function handleExportTriggerEnter() {
   if (exporting.value) return
   exportMenuOpen.value = true
   layoutMenuOpen.value = false
+  fontSizeMenuOpen.value = false
   lineHeightMenuOpen.value = false
 }
 
@@ -152,6 +165,9 @@ function handleDocumentPointerDown(event: MouseEvent) {
   if (layoutMenuRef.value && !layoutMenuRef.value.contains(target)) {
     layoutMenuOpen.value = false
   }
+  if (fontSizeMenuRef.value && !fontSizeMenuRef.value.contains(target)) {
+    fontSizeMenuOpen.value = false
+  }
   if (lineHeightMenuRef.value && !lineHeightMenuRef.value.contains(target)) {
     lineHeightMenuOpen.value = false
   }
@@ -159,6 +175,14 @@ function handleDocumentPointerDown(event: MouseEvent) {
 
 function handleLayoutTriggerClick() {
   layoutMenuOpen.value = !layoutMenuOpen.value
+  fontSizeMenuOpen.value = false
+  lineHeightMenuOpen.value = false
+  exportMenuOpen.value = false
+}
+
+function handleFontSizeTriggerClick() {
+  fontSizeMenuOpen.value = !fontSizeMenuOpen.value
+  layoutMenuOpen.value = false
   lineHeightMenuOpen.value = false
   exportMenuOpen.value = false
 }
@@ -166,7 +190,13 @@ function handleLayoutTriggerClick() {
 function handleLineHeightTriggerClick() {
   lineHeightMenuOpen.value = !lineHeightMenuOpen.value
   layoutMenuOpen.value = false
+  fontSizeMenuOpen.value = false
   exportMenuOpen.value = false
+}
+
+function handleFontSizeSelect(value: number) {
+  store.updateLayoutSetting('contentFontSize', value)
+  fontSizeMenuOpen.value = false
 }
 
 function handleLineHeightSelect(value: number) {
@@ -308,6 +338,30 @@ async function exportPDF(mode: ExportQualityMode) {
           </button>
           <div v-if="layoutMenuOpen" class="layout-popover">
             <LayoutSettingsPanel />
+          </div>
+        </div>
+
+        <div ref="fontSizeMenuRef" class="toolbar-dropdown">
+          <button
+            class="toolbar-button"
+            type="button"
+            :aria-expanded="fontSizeMenuOpen"
+            @click="handleFontSizeTriggerClick"
+          >
+            {{ currentFontSizeLabel }}
+          </button>
+          <div v-if="fontSizeMenuOpen" class="font-size-menu">
+            <button
+              v-for="preset in fontSizePresets"
+              :key="preset.value"
+              class="font-size-item"
+              :class="{ active: store.layoutSettings.contentFontSize === preset.value }"
+              type="button"
+              @click="handleFontSizeSelect(preset.value)"
+            >
+              <span>{{ preset.label }}</span>
+              <strong>{{ preset.value }}px</strong>
+            </button>
           </div>
         </div>
 
@@ -590,6 +644,20 @@ async function exportPDF(mode: ExportQualityMode) {
   z-index: 18;
 }
 
+.font-size-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  min-width: 132px;
+  padding: 4px;
+  border-radius: 8px;
+  border: 1px solid #e9ded0;
+  background: #fff;
+  box-shadow: 0 12px 24px rgba(45, 37, 33, 0.14);
+  z-index: 18;
+}
+
+.font-size-item,
 .line-height-item {
   width: 100%;
   min-height: 32px;
@@ -607,18 +675,22 @@ async function exportPDF(mode: ExportQualityMode) {
   cursor: pointer;
 }
 
+.font-size-item strong,
 .line-height-item strong {
   color: #8a7461;
   font-size: 11px;
   font-weight: 700;
 }
 
+.font-size-item:hover,
+.font-size-item.active,
 .line-height-item:hover,
 .line-height-item.active {
   background: #fff4ec;
   color: #d97745;
 }
 
+.font-size-item.active strong,
 .line-height-item.active strong {
   color: #d97745;
 }

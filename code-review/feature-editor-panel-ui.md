@@ -22,24 +22,27 @@
 - P2：0
 
 ## 审查范围
-- `src/stores/resume.ts`：默认示例简历数据工厂、新建简历默认内容。
-- `src/templates/shared/useResumeTemplateData.ts`：移除预览层字段级示例兜底，保持预览读取真实编辑数据。
-- `src/templates/resume/**/ResumeTemplate.vue`：移除姓名占位兜底，补齐或修正作者标识。
-- `src/components/resume/EditorPanel.vue`：移除清空入口后的移动端操作区样式保留。
+- `src/components/resume/PreviewPanel.vue`：新增实时预览顶部正文字号下拉入口、菜单互斥关闭与字号选择交互。
+- `src/stores/resume.ts`：新增 `contentFontSize` 布局配置、默认值 14px、范围约束与归一化。
+- `src/templates/shared/resumeTemplateRuntime.ts`：新增 `--resume-content-font-size` 模板运行时 CSS 变量。
+- `src/services/resumeTemplateRuntimeService.ts`：分享页模板运行时补齐历史数据的正文字号默认值。
+- `src/templates/resume/**/ResumeTemplate.vue`：9 套简历模板正文富文本区域统一接入 `--resume-content-font-size`，并修正被修改模板的作者标识。
 
 ## 验证
 - `npm run lint`：通过。
 - `npm run type-check`：通过。
 - `git diff --check`：通过。
-- Playwright 页面验收：通过，确认顶部不再展示“清空内容”，新建默认内容可编辑，左侧删除字段后右侧不再显示隐藏默认值。
+- Playwright 页面验收：通过，确认默认按钮显示 `字号 14px`，正文 computed font-size 为 `14px`；选择 `11px` 后正文变为 `11px`，姓名 `26px` 与模块标题 `18px` 保持不变。
+- 作者标识检索：通过，未发现 `author: jf`、`author: ai`、`created by ai`、`作者：ai`。
 
 ## 剩余风险
-- 当前页面验收环境未启动后端，前端按 `auto` 存储策略回退到本地存储；未覆盖远程 `/api/resumes` 后端联调。
+- 本次功能为前端预览交互与模板样式变更，未覆盖远程 `/api/resumes` 后端联调；但 `layoutSettings` 会随既有保存与导出链路进入简历内容快照。
+- `docs/requirements/2026-05-08-resume-font-size-control.md` 与本报告所在目录均被仓库 `.gitignore` 忽略，仅作为本地流程记录，不进入本次提交。
 
 ### 📋 代码审查总结
 
 **👨‍💻 审查人：** Codex
-**📅 日期：** 2026-05-07
+**📅 日期：** 2026-05-08
 
 #### 📊 质量评估
 * **整体评分：** 100 / 100
@@ -51,7 +54,7 @@
 * 🟢 **轻微问题：** 0 个
 
 #### 📝 综合评语
-> 本次改动将实时预览默认内容从展示层兜底迁移为真实 store 数据，并移除了清空入口，符合“右侧预览必须与左侧编辑数据一致”的目标。变更集中在前端 store、模板共享数据与模板展示层，没有触碰后端接口、数据库、测试代码或无关模块；命令校验与页面验收均通过。
+> 本次改动范围聚焦在简历实时预览顶部的正文字号控制，数据模型、模板运行时与 9 套模板样式链路完整闭合。默认字号按需求设置为 14px，字号变更只影响正文富文本区域，不破坏姓名、模块标题等模板层级；命令验证与页面验收均通过，未发现阻断合并的问题。
 
 #### ✅ 审查结论
 - [x] **Approve**

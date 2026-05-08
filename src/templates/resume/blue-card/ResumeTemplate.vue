@@ -415,7 +415,7 @@ const {
 .entry-rich {
   margin-top: 3px;
   color: #000;
-  font-size: 12px;
+  font-size: var(--resume-content-font-size);
   line-height: var(--resume-content-line-height);
 }
 

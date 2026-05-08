@@ -1,6 +1,7 @@
 ﻿<script setup lang="ts">
 import { iconPaths, iconViewBox, isFilledIcon } from '../../shared/metaIcons'
 import { useResumeTemplateData } from '../../shared/useResumeTemplateData'
+// author: Bob
 
 const {
   store,
@@ -391,7 +392,7 @@ const {
 .entry-rich {
   margin-top: 2px;
   color: #000;
-  font-size: 12px;
+  font-size: var(--resume-content-font-size);
   line-height: var(--resume-content-line-height);
 }
 
