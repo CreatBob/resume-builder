@@ -419,6 +419,10 @@ const {
   line-height: var(--resume-content-line-height);
 }
 
+:deep(.entry-rich *) {
+  font-size: inherit !important;
+}
+
 .empty {
   margin-top: 40px;
   text-align: center;

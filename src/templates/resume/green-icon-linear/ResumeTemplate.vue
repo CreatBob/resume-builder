@@ -593,6 +593,10 @@ function projectHref(link: string): string {
   line-height: var(--resume-content-line-height);
 }
 
+:deep(.entry-rich *) {
+  font-size: inherit !important;
+}
+
 .empty {
   margin-top: 30px;
   text-align: center;
