@@ -1,6 +1,8 @@
 <script setup lang="ts">
-import { ref, watch, onMounted } from 'vue'
-// author: jf
+import { nextTick, ref, watch, onMounted } from 'vue'
+// author: Bob
+
+let richEditorInstanceCounter = 0
 
 const props = defineProps<{
   modelValue: string
@@ -12,15 +14,22 @@ const emit = defineEmits<{
   'update:modelValue': [value: string]
 }>()
 
+const linkInputId = `rich-editor-link-input-${++richEditorInstanceCounter}`
 const editorRef = ref<HTMLDivElement | null>(null)
+const linkInputRef = ref<HTMLInputElement | null>(null)
 const isFocused = ref(false)
 const showPlaceholder = ref(!props.modelValue)
+const isLinkPopoverOpen = ref(false)
+const linkInputValue = ref('')
+const linkError = ref('')
+const pendingLinkRange = ref<Range | null>(null)
 
-// Sync incoming model value → DOM (only when not focused to avoid cursor jumps)
+// 同步外部值到 DOM，编辑中不刷新以避免光标跳动。
 watch(() => props.modelValue, (val) => {
   if (!editorRef.value || isFocused.value) return
   if (editorRef.value.innerHTML !== val) {
     editorRef.value.innerHTML = val || ''
+    applySafeLinkAttributes()
   }
   showPlaceholder.value = !val
 })
@@ -28,13 +37,15 @@ watch(() => props.modelValue, (val) => {
 onMounted(() => {
   if (editorRef.value) {
     editorRef.value.innerHTML = props.modelValue || ''
+    applySafeLinkAttributes()
     showPlaceholder.value = !props.modelValue
   }
 })
 
 function onInput() {
+  applySafeLinkAttributes()
   const html = editorRef.value?.innerHTML ?? ''
-  // Treat empty div as empty string
+  // 将浏览器生成的空段落视为空内容。
   const clean = html === '<br>' || html === '<div><br></div>' ? '' : html
   showPlaceholder.value = !clean
   emit('update:modelValue', clean)
@@ -46,11 +57,116 @@ function execCmd(cmd: string, value?: string) {
   onInput()
 }
 
+function normalizeLinkUrl(rawUrl: string): string {
+  const trimmedUrl = rawUrl.trim()
+  if (!trimmedUrl) return ''
+
+  let urlWithProtocol = trimmedUrl
+  if (!/^[a-z][a-z\d+.-]*:/i.test(trimmedUrl)) {
+    urlWithProtocol = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedUrl)
+      ? `mailto:${trimmedUrl}`
+      : `https://${trimmedUrl}`
+  }
+
+  try {
+    const url = new URL(urlWithProtocol)
+    return ['http:', 'https:', 'mailto:'].includes(url.protocol) ? url.href : ''
+  } catch {
+    return ''
+  }
+}
+
+function applySafeLinkAttributes() {
+  editorRef.value?.querySelectorAll<HTMLAnchorElement>('a[href]').forEach((link) => {
+    const normalizedUrl = normalizeLinkUrl(link.getAttribute('href') ?? '')
+    if (!normalizedUrl) {
+      link.removeAttribute('href')
+      link.removeAttribute('target')
+      link.removeAttribute('rel')
+      return
+    }
+    link.href = normalizedUrl
+    link.target = '_blank'
+    link.rel = 'noopener noreferrer'
+  })
+}
+
+function getCurrentEditorRange(): Range | null {
+  const selection = window.getSelection()
+  const editor = editorRef.value
+  if (!selection || !editor || selection.rangeCount === 0) return null
+
+  const range = selection.getRangeAt(0)
+  return editor.contains(range.commonAncestorContainer) ? range.cloneRange() : null
+}
+
+function restoreEditorRange(range: Range) {
+  const selection = window.getSelection()
+  if (!selection) return
+  selection.removeAllRanges()
+  selection.addRange(range)
+}
+
+function openLinkPopover() {
+  const range = getCurrentEditorRange()
+  pendingLinkRange.value = range
+  linkError.value = ''
+
+  if (!range || range.collapsed) {
+    linkInputValue.value = ''
+    linkError.value = '请先选中要添加链接的文字'
+  } else {
+    const selectedText = range.toString().trim()
+    linkInputValue.value = /^https?:\/\//i.test(selectedText) || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(selectedText)
+      ? selectedText
+      : 'https://'
+  }
+
+  isLinkPopoverOpen.value = true
+  void nextTick(() => linkInputRef.value?.focus())
+}
+
+function closeLinkPopover() {
+  isLinkPopoverOpen.value = false
+  linkInputValue.value = ''
+  linkError.value = ''
+  pendingLinkRange.value = null
+  editorRef.value?.focus()
+}
+
+function confirmLink() {
+  const range = pendingLinkRange.value
+  if (!range || range.collapsed) {
+    linkError.value = '请先选中要添加链接的文字'
+    return
+  }
+
+  const normalizedUrl = normalizeLinkUrl(linkInputValue.value)
+  if (!normalizedUrl) {
+    linkError.value = '请输入有效链接，仅支持 http、https 或 mailto'
+    return
+  }
+
+  editorRef.value?.focus()
+  restoreEditorRange(range)
+  document.execCommand('createLink', false, normalizedUrl)
+  applySafeLinkAttributes()
+  isLinkPopoverOpen.value = false
+  linkInputValue.value = ''
+  pendingLinkRange.value = null
+  linkError.value = ''
+  onInput()
+}
+
+function unlink() {
+  execCmd('unlink')
+}
+
 function setFontSize(e: Event) {
   const target = e.target as HTMLSelectElement
   const size = target.value
   if (!size) return
-  // execCommand fontSize uses 1-7 scale; we use a span approach instead
+  // execCommand 的 fontSize 只能使用 1-7，先生成临时 font 后替换为 span。
   document.execCommand('fontSize', false, '7')
   const fontEls = editorRef.value?.querySelectorAll('font[size="7"]')
   fontEls?.forEach(el => {
@@ -59,11 +175,11 @@ function setFontSize(e: Event) {
     span.innerHTML = el.innerHTML
     el.parentNode?.replaceChild(span, el)
   })
-  // Keep list item marker size in sync with content size.
+  // 同步列表符号字号，避免项目符号和正文大小不一致。
   applyFontSizeToSelectedListItems(size)
   editorRef.value?.focus()
   onInput()
-  // Reset select so re-selecting the same size still triggers change next time.
+  // 重置选择器，保证连续选择同一字号也能触发。
   target.value = ''
 }
 
@@ -117,7 +233,7 @@ function isActive(cmd: string): boolean {
 
 <template>
   <div class="rich-editor-wrap" :class="{ focused: isFocused }">
-    <!-- Toolbar -->
+    <!-- 工具栏 -->
     <div class="rich-toolbar">
       <button type="button" class="tool-btn" :class="{ active: isActive('bold') }" @mousedown.prevent="execCmd('bold')" title="粗体">
         <strong>B</strong>
@@ -142,6 +258,21 @@ function isActive(cmd: string): boolean {
       </select>
       <input type="color" class="tool-color" @change="setColor" title="字体颜色" value="#333333" />
       <div class="tool-divider"></div>
+      <button type="button" class="tool-btn" :class="{ active: isActive('createLink') || isLinkPopoverOpen }" @mousedown.prevent="openLinkPopover" title="添加链接">
+        <svg width="13" height="13" viewBox="0 0 16 16" fill="none">
+          <path d="M6.8 4.7l.8-.8a3 3 0 0 1 4.2 4.2l-1.9 1.9a3 3 0 0 1-4.2 0" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+          <path d="M9.2 11.3l-.8.8a3 3 0 0 1-4.2-4.2l1.9-1.9a3 3 0 0 1 4.2 0" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+          <path d="M6.4 9.6l3.2-3.2" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+        </svg>
+      </button>
+      <button type="button" class="tool-btn" @mousedown.prevent="unlink" title="取消链接">
+        <svg width="13" height="13" viewBox="0 0 16 16" fill="none">
+          <path d="M6.6 4.7l.8-.8a3 3 0 0 1 4.2 4.2l-.6.6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+          <path d="M9.4 11.3l-.8.8a3 3 0 0 1-4.2-4.2l.6-.6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+          <path d="M3.5 3.5l9 9" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+        </svg>
+      </button>
+      <div class="tool-divider"></div>
       <button type="button" class="tool-btn" @mousedown.prevent="execCmd('insertUnorderedList')" title="无序列表">
         <svg width="12" height="12" viewBox="0 0 16 16" fill="none">
           <circle cx="2" cy="4" r="1.2" fill="currentColor"/>
@@ -165,7 +296,28 @@ function isActive(cmd: string): boolean {
       </button>
     </div>
 
-    <!-- Editable area -->
+    <div v-if="isLinkPopoverOpen" class="link-popover" role="dialog" aria-label="添加链接">
+      <label class="link-label" :for="linkInputId">链接地址</label>
+      <div class="link-input-row">
+        <input
+          :id="linkInputId"
+          ref="linkInputRef"
+          v-model="linkInputValue"
+          class="link-input"
+          type="url"
+          placeholder="https://example.com"
+          @keydown.enter.prevent="confirmLink"
+          @keydown.esc.prevent="closeLinkPopover"
+        />
+        <button type="button" class="link-action link-action-primary" @mousedown.prevent="confirmLink">确定</button>
+        <button type="button" class="link-action" @mousedown.prevent="closeLinkPopover">取消</button>
+      </div>
+      <p class="link-helper" :class="{ 'link-helper-error': linkError }">
+        {{ linkError || '支持 http、https、mailto；未填写协议时会自动补全 https。' }}
+      </p>
+    </div>
+
+    <!-- 编辑区 -->
     <div class="editor-area-wrap">
       <div
         ref="editorRef"
@@ -264,7 +416,88 @@ function isActive(cmd: string): boolean {
   background: white;
 }
 
-/* Editable area */
+.link-popover {
+  padding: 10px 12px 11px;
+  background: var(--color-bg-panel);
+  border-bottom: 1px solid var(--color-border-default);
+  box-shadow: var(--shadow-xs);
+}
+
+.link-label {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+}
+
+.link-input-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.link-input {
+  flex: 1;
+  min-width: 0;
+  height: 30px;
+  padding: 0 9px;
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-panel);
+  color: var(--color-text-primary);
+  font-size: var(--font-size-xs);
+  outline: none;
+}
+
+.link-input:focus {
+  border-color: var(--color-border-focus);
+  box-shadow: 0 0 0 3px var(--state-focus-ring);
+}
+
+.link-action {
+  flex-shrink: 0;
+  height: 30px;
+  padding: 0 10px;
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-panel);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.link-action:hover {
+  border-color: var(--color-brand);
+  background: var(--color-brand-subtle);
+  color: var(--color-brand);
+}
+
+.link-action-primary {
+  border-color: var(--color-brand);
+  background: var(--color-brand);
+  color: var(--color-text-inverse);
+}
+
+.link-action-primary:hover {
+  background: var(--color-brand-hover);
+  color: var(--color-text-inverse);
+}
+
+.link-helper {
+  min-height: 16px;
+  margin-top: 6px;
+  color: var(--color-text-tertiary);
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.link-helper-error {
+  color: var(--color-danger);
+}
+
+/* 编辑区 */
 .editor-area-wrap {
   position: relative;
 }
@@ -314,5 +547,22 @@ function isActive(cmd: string): boolean {
   font-size: 1em;
   font-weight: inherit;
   color: currentColor;
+}
+
+.editor-area :deep(a[href]) {
+  color: var(--color-text-link);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+@media (max-width: 560px) {
+  .link-input-row {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .link-action {
+    width: 100%;
+  }
 }
 </style>

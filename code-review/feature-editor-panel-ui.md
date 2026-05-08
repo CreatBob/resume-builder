@@ -22,22 +22,18 @@
 - P2：0
 
 ## 审查范围
-- `src/components/resume/PreviewPanel.vue`：新增实时预览顶部正文字号下拉入口、菜单互斥关闭与字号选择交互。
-- `src/stores/resume.ts`：新增 `contentFontSize` 布局配置、默认值 14px、范围约束与归一化。
-- `src/templates/shared/resumeTemplateRuntime.ts`：新增 `--resume-content-font-size` 模板运行时 CSS 变量。
-- `src/services/resumeTemplateRuntimeService.ts`：分享页模板运行时补齐历史数据的正文字号默认值。
-- `src/templates/resume/**/ResumeTemplate.vue`：9 套简历模板正文富文本区域统一接入 `--resume-content-font-size`，并修正被修改模板的作者标识。
+- `src/components/common/RichEditor.vue`：新增富文本添加链接能力，使用自定义链接浮层替代浏览器原生弹窗；补充链接地址归一化、协议白名单与安全属性。
+- `src/assets/main.css`：补充简历预览富文本链接样式，保证编辑区和预览区链接可识别。
 
 ## 验证
 - `npm run lint`：通过。
 - `npm run type-check`：通过。
 - `git diff --check`：通过。
-- Playwright 页面验收：通过，确认默认按钮显示 `字号 14px`，正文 computed font-size 为 `14px`；选择 `11px` 后正文变为 `11px`，姓名 `26px` 与模块标题 `18px` 保持不变。
-- 作者标识检索：通过，未发现 `author: jf`、`author: ai`、`created by ai`、`作者：ai`。
+- Playwright 页面验收：通过；确认添加链接不再触发浏览器原生弹窗，自定义链接浮层可输入 `example.com` 并生成 `https://example.com/`，编辑区链接包含 `target="_blank"` 与 `rel="noopener noreferrer"`，预览区同步出现链接，`javascript:` 协议会显示错误提示。
 
 ## 剩余风险
-- 本次功能为前端预览交互与模板样式变更，未覆盖远程 `/api/resumes` 后端联调；但 `layoutSettings` 会随既有保存与导出链路进入简历内容快照。
-- `docs/requirements/2026-05-08-resume-font-size-control.md` 与本报告所在目录均被仓库 `.gitignore` 忽略，仅作为本地流程记录，不进入本次提交。
+- 本次页面验收覆盖了一个工作经历富文本实例；其他模块复用同一个 `RichEditor` 组件实现，风险较低。
+- `docs/requirements/2026-05-08-rich-editor-links.md` 被仓库 `.gitignore` 忽略，仅作为本地流程记录，不进入本次提交。
 
 ### 📋 代码审查总结
 
@@ -54,7 +50,7 @@
 * 🟢 **轻微问题：** 0 个
 
 #### 📝 综合评语
-> 本次改动范围聚焦在简历实时预览顶部的正文字号控制，数据模型、模板运行时与 9 套模板样式链路完整闭合。默认字号按需求设置为 14px，字号变更只影响正文富文本区域，不破坏姓名、模块标题等模板层级；命令验证与页面验收均通过，未发现阻断合并的问题。
+> 本次改动聚焦在富文本添加链接功能：保留现有 `contenteditable + execCommand` 的最小实现路线，新增自定义链接浮层、URL 自动补全、协议白名单和外链安全属性，同时让简历预览区链接具备明确的可点击样式。功能范围收敛，校验命令与页面验收均通过，未发现阻断合并的问题。
 
 #### ✅ 审查结论
 - [x] **Approve**

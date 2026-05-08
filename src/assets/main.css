@@ -186,6 +186,16 @@ a {
   text-decoration: none;
 }
 
+.entry-rich a {
+  color: var(--color-text-link);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.entry-rich a:hover {
+  color: var(--color-brand-hover);
+}
+
 button,
 a,
 input,
