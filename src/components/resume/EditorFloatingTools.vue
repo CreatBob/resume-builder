@@ -514,11 +514,42 @@ onUnmounted(() => {
 
 @container (max-width: 560px) {
   .module-switch-popover {
-    right: 0;
+    right: auto;
+    left: 0;
     top: auto;
     bottom: calc(100% + 10px);
     width: min(280px, calc(100vw - 24px));
     max-width: none;
+  }
+}
+
+@media (max-width: 760px) {
+  .floating-tools {
+    position: fixed;
+    right: 12px;
+    bottom: calc(88px + env(safe-area-inset-bottom, 0px));
+    top: auto;
+    margin-right: 0;
+    z-index: 34;
+  }
+
+  .floating-tools-stack {
+    transform: none;
+    gap: 10px;
+  }
+
+  .floating-tool-btn {
+    width: 50px;
+    height: 50px;
+  }
+
+  .module-switch-popover {
+    left: auto;
+    right: 0;
+    top: auto;
+    bottom: calc(100% + 10px);
+    max-height: min(52vh, 360px);
+    overflow-y: auto;
   }
 }
 </style>

@@ -172,7 +172,8 @@ function handleSelectMenu(key: PrimaryMenuKey) {
   .resume-editor-workspace {
     display: flex;
     flex-direction: column;
-    overflow: auto;
+    overflow-y: auto;
+    overflow-x: hidden;
   }
 
   .app-layout.no-sidebar .resume-editor-workspace {
@@ -186,9 +187,24 @@ function handleSelectMenu(key: PrimaryMenuKey) {
     flex-direction: column;
   }
 
+  .resume-editor-workspace {
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
+
+  .app-layout.no-sidebar .resume-editor-workspace {
+    padding-bottom: calc(var(--space-12) + env(safe-area-inset-bottom, 0px));
+  }
+
+  .app-layout.no-sidebar .editor-panel {
+    height: auto;
+    min-height: 0;
+    overflow: visible;
+  }
+
   .app-layout.no-sidebar .preview-panel {
     height: auto;
-    min-height: 70vh;
+    min-height: 0;
   }
 }
 </style>

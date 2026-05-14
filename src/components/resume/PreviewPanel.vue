@@ -586,6 +586,7 @@ async function exportPDF(mode: ExportQualityMode) {
   justify-content: flex-end;
   gap: 8px;
   flex-shrink: 0;
+  flex-wrap: wrap;
 }
 
 .toolbar-share-button {
@@ -623,6 +624,7 @@ async function exportPDF(mode: ExportQualityMode) {
   top: calc(100% + 8px);
   right: 0;
   width: 390px;
+  max-width: min(390px, calc(100vw - 24px));
   padding: 18px 20px;
   border-radius: 8px;
   border: 1px solid #e9ded0;
@@ -862,7 +864,7 @@ async function exportPDF(mode: ExportQualityMode) {
 .preview-scroll {
   flex: 1;
   overflow-y: auto;
-  overflow-x: hidden;
+  overflow-x: auto;
   padding: 0;
 }
 
@@ -918,5 +920,100 @@ async function exportPDF(mode: ExportQualityMode) {
   font-weight: 600;
   background: #efe7dc;
   padding: 0 4px;
+}
+
+@media (max-width: 760px) {
+  .preview-panel {
+    padding: 12px 0;
+    gap: 10px;
+  }
+
+  .preview-top {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+    padding: 0 12px;
+  }
+
+  .preview-title-row {
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
+  .preview-toolbar {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    justify-content: stretch;
+    gap: 8px;
+    width: 100%;
+  }
+
+  .toolbar-dropdown,
+  .export-actions,
+  .toolbar-share-button,
+  .toolbar-button,
+  .btn-export {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .toolbar-button,
+  .btn-export {
+    justify-content: center;
+  }
+
+  .export-actions {
+    display: flex;
+  }
+
+  .preview-scroll {
+    padding: 0 12px 12px;
+    overflow-y: visible;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .paper-wrapper {
+    margin: 0;
+  }
+
+  .layout-popover,
+  .font-size-menu,
+  .line-height-menu,
+  .export-menu {
+    left: 0;
+    right: auto;
+    width: min(100%, calc(100vw - 24px));
+    max-width: calc(100vw - 24px);
+  }
+
+  .export-menu {
+    min-width: 0;
+  }
+}
+
+@media (max-width: 480px) {
+  .preview-toolbar {
+    grid-template-columns: 1fr;
+  }
+
+  .template-trigger {
+    flex: 1 1 100%;
+    min-width: 0;
+    justify-content: flex-start;
+  }
+
+  .template-trigger-name {
+    max-width: none;
+    flex: 1 1 auto;
+  }
+
+  .a4-badge {
+    order: 3;
+  }
+
+  .layout-popover {
+    padding: 14px;
+  }
 }
 </style>
