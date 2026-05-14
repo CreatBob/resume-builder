@@ -22,23 +22,29 @@
 - P2：0
 
 ## 审查范围
-- `src/components/common/RichEditor.vue`：新增富文本添加链接能力，使用自定义链接浮层替代浏览器原生弹窗；补充链接地址归一化、协议白名单与安全属性。
-- `src/assets/main.css`：补充简历预览富文本链接样式，保证编辑区和预览区链接可识别。
+- `src/templates/resume/black-white-linear/ResumeTemplate.vue`
+- `src/templates/resume/blue-card/ResumeTemplate.vue`
+- `src/templates/resume/blue-linear/ResumeTemplate.vue`
+- `src/templates/resume/blue-sidebar-career/ResumeTemplate.vue`
+- `src/templates/resume/blue-split-pro/ResumeTemplate.vue`
+- `src/templates/resume/default/ResumeTemplate.vue`
+- `src/templates/resume/green-icon-linear/ResumeTemplate.vue`
+- `src/templates/resume/red-gradient-template/ResumeTemplate.vue`
+- `src/templates/resume/workplace-general/ResumeTemplate.vue`
 
 ## 验证
 - `npm run lint`：通过。
 - `npm run type-check`：通过。
-- `git diff --check`：通过。
-- Playwright 页面验收：通过；确认添加链接不再触发浏览器原生弹窗，自定义链接浮层可输入 `example.com` 并生成 `https://example.com/`，编辑区链接包含 `target="_blank"` 与 `rel="noopener noreferrer"`，预览区同步出现链接，`javascript:` 协议会显示错误提示。
+- Playwright 页面验收：通过；已输入示例项目名称与项目链接，并逐一切换 9 套模板，确认项目经历中的链接均右对齐展示，且链接文本未被裁切。
 
 ## 剩余风险
-- 本次页面验收覆盖了一个工作经历富文本实例；其他模块复用同一个 `RichEditor` 组件实现，风险较低。
-- `docs/requirements/2026-05-08-rich-editor-links.md` 被仓库 `.gitignore` 忽略，仅作为本地流程记录，不进入本次提交。
+- 本次浏览器验收覆盖的是实时预览场景；`PDF` 导出与分享页未单独回归验证，但本次改动仅涉及模板内的 `.entry-link-row` 文本对齐样式，影响面较小。
+- 当前工作区仍存在未纳入本次审查范围的未跟踪文件：`spring-ai-backend/spring-ai-backend.iml`。
 
 ### 📋 代码审查总结
 
 **👨‍💻 审查人：** Codex
-**📅 日期：** 2026-05-08
+**📅 日期：** 2026-05-09
 
 #### 📊 质量评估
 * **整体评分：** 100 / 100
@@ -50,7 +56,7 @@
 * 🟢 **轻微问题：** 0 个
 
 #### 📝 综合评语
-> 本次改动聚焦在富文本添加链接功能：保留现有 `contenteditable + execCommand` 的最小实现路线，新增自定义链接浮层、URL 自动补全、协议白名单和外链安全属性，同时让简历预览区链接具备明确的可点击样式。功能范围收敛，校验命令与页面验收均通过，未发现阻断合并的问题。
+> 本次改动聚焦在简历模板实时预览中的项目链接对齐方式：9 套模板统一为 `.entry-link-row` 增加右对齐样式，改动边界清晰，没有侵入数据结构、编辑器逻辑或导出链路。静态校验与浏览器逐模板验收均通过，未发现阻断合并的问题。
 
 #### ✅ 审查结论
 - [x] **Approve**

@@ -377,6 +377,7 @@ const {
 .entry-link-row {
   margin-top: 2px;
   margin-bottom: 2px;
+  text-align: right;
 }
 
 .entry-link {

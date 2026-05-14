@@ -374,6 +374,7 @@ function subLine(values: Array<string | undefined>): string {
 
 .entry-link-row {
   margin: 4px 0 2px;
+  text-align: right;
 }
 
 .entry-link {

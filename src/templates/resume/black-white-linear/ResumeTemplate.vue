@@ -335,6 +335,7 @@ const customMetaLine = computed(() => customBasicMeta.value.map((item) => item.t
 .entry-link-row {
   margin-top: 4px;
   margin-bottom: 2px;
+  text-align: right;
 }
 
 .entry-link {

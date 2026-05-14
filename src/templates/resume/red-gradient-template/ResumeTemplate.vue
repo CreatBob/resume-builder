@@ -483,6 +483,7 @@ function projectHref(link: string): string {
 
 .entry-link-row {
   margin: 4px 0 0;
+  text-align: right;
 }
 
 .entry-link {
