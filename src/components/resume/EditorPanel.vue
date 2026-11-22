@@ -11,18 +11,34 @@ import SelfIntroEditor from './editors/SelfIntroEditor.vue'
 import AiOptimizePanel from '@/components/ai/AiOptimizePanel.vue'
 import EditorFloatingTools from './EditorFloatingTools.vue'
 import EditorModuleList from './EditorModuleList.vue'
+import MobileResumeManageSheet from './MobileResumeManageSheet.vue'
+import MobileModuleManagerSheet from './MobileModuleManagerSheet.vue'
 import { awardHasContent } from '@/utils/awardContent'
 // author: Bob
+
+const emit = defineEmits<{
+  (e: 'switch-mobile-preview'): void
+}>()
 
 const store = useResumeStore()
 const searchValue = ref('')
 const showAiPanel = ref(false)
+const mobileManageOpen = ref(false)
+const mobileModulesOpen = ref(false)
 const jsonImportInputRef = ref<HTMLInputElement | null>(null)
 const nowTick = ref(Date.now())
 const renameValue = ref('')
 
 function handleAiClick() {
   showAiPanel.value = true
+}
+
+function openMobileManageSheet() {
+  mobileManageOpen.value = true
+}
+
+function openMobileModulesSheet() {
+  mobileModulesOpen.value = true
 }
 
 const expanded = reactive<Record<string, boolean>>({
@@ -128,14 +144,18 @@ async function handleCreateResume() {
   renameValue.value = store.currentResume?.title ?? ''
 }
 
-async function handleSwitchResume(event: Event) {
-  const select = event.target as HTMLSelectElement
+async function switchResumeById(nextId: string) {
   const nextTitle = renameValue.value.trim()
   if (nextTitle && nextTitle !== store.currentResume?.title) {
     await store.renameCurrentResume(nextTitle)
   }
-  await store.switchResume(select.value)
+  await store.switchResume(nextId)
   renameValue.value = store.currentResume?.title ?? ''
+}
+
+async function handleSwitchResume(event: Event) {
+  const select = event.target as HTMLSelectElement
+  await switchResumeById(select.value)
 }
 
 async function handleRenameResume() {
@@ -229,6 +249,24 @@ onUnmounted(() => {
     <EditorFloatingTools @open-ai="handleAiClick" />
 
     <section class="info-editor">
+      <div class="mobile-editor-header">
+        <button class="mobile-resume-trigger" type="button" @click="openMobileManageSheet">
+          <span class="mobile-resume-name">{{ store.currentResume?.title || '我的简历' }}</span>
+          <span class="mobile-resume-arrow" aria-hidden="true">▾</span>
+        </button>
+        <div class="mobile-header-actions">
+          <span class="mobile-save-badge" :class="{ pending: isAutoSavePending, saving: store.isSaving }">
+            {{ store.isSaving ? '保存中' : isAutoSavePending ? '待保存' : '已保存' }}
+          </span>
+          <button class="mobile-icon-btn" type="button" aria-label="模块管理" @click="openMobileModulesSheet">
+            模块
+          </button>
+          <button class="mobile-icon-btn mobile-ai-btn" type="button" aria-label="AI优化" @click="handleAiClick">
+            AI 优化
+          </button>
+        </div>
+      </div>
+
       <div class="editor-topbar">
         <div class="editor-topbar-left">
           <div class="editor-status-strip" aria-label="简历编辑状态">
@@ -347,6 +385,32 @@ onUnmounted(() => {
     <AiOptimizePanel
       v-if="showAiPanel"
       @close="showAiPanel = false"
+    />
+
+    <MobileResumeManageSheet
+      v-model="mobileManageOpen"
+      v-model:rename-value="renameValue"
+      v-model:search-value="searchValue"
+      :current-resume-id="store.currentResumeId"
+      :resume-documents="store.resumeDocuments"
+      :is-workspace-ready="store.isWorkspaceReady"
+      @switch-resume="switchResumeById"
+      @rename-resume="handleRenameResume"
+      @create-resume="handleCreateResume"
+      @delete-resume="handleDeleteResume"
+      @import-json="triggerJsonImport"
+      @switch-mobile-preview="emit('switch-mobile-preview')"
+    />
+
+    <MobileModuleManagerSheet
+      v-model="mobileModulesOpen"
+      :modules="store.modules"
+      :visible-count="visibleCount"
+      :is-default-order="store.isDefaultModuleOrder()"
+      :can-move-module="store.canMoveModule"
+      @reset-order="store.resetModuleOrder()"
+      @move-module="store.moveModule"
+      @toggle-module="store.toggleModule"
     />
   </main>
 </template>
@@ -641,6 +705,10 @@ onUnmounted(() => {
   font-size: var(--font-size-xs);
 }
 
+.mobile-editor-header {
+  display: none;
+}
+
 .fade-enter-active,
 .fade-leave-active {
   transition: opacity 0.2s;
@@ -689,6 +757,95 @@ onUnmounted(() => {
     width: 100%;
     flex-direction: column;
     align-items: stretch;
+  }
+}
+
+@media (max-width: 760px) {
+  .editor-topbar,
+  .editor-assist-row,
+  .module-hint {
+    display: none;
+  }
+
+  .mobile-editor-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-2);
+    padding-bottom: var(--space-3);
+    border-bottom: 1px solid var(--color-border-subtle);
+  }
+
+  .mobile-resume-trigger {
+    flex: 1;
+    min-width: 0;
+    min-height: 38px;
+    padding: 0 var(--space-3);
+    border: 1px solid var(--color-border-default);
+    border-radius: var(--radius-md);
+    background: var(--color-bg-subtle);
+    color: var(--color-text-primary);
+    display: inline-flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px;
+    font-size: var(--font-size-sm);
+    font-weight: 700;
+    cursor: pointer;
+  }
+
+  .mobile-resume-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .mobile-resume-arrow {
+    color: var(--color-text-tertiary);
+    flex-shrink: 0;
+  }
+
+  .mobile-header-actions {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+  }
+
+  .mobile-save-badge {
+    height: 28px;
+    padding: 0 8px;
+    border-radius: var(--radius-full);
+    background: var(--color-success-subtle);
+    color: var(--color-success);
+    font-size: 11px;
+    font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+  }
+
+  .mobile-save-badge.pending,
+  .mobile-save-badge.saving {
+    background: var(--color-brand-subtle);
+    color: var(--color-brand-text);
+  }
+
+  .mobile-icon-btn {
+    min-height: 38px;
+    padding: 0 10px;
+    border: 1px solid var(--color-border-default);
+    border-radius: var(--radius-md);
+    background: var(--color-bg-panel);
+    color: var(--color-text-secondary);
+    font-size: var(--font-size-xs);
+    font-weight: 700;
+    cursor: pointer;
+  }
+
+  .mobile-ai-btn {
+    border-color: var(--color-brand);
+    background: var(--color-brand);
+    color: var(--color-text-inverse);
   }
 }
 </style>

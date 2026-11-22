@@ -1,74 +1,57 @@
 <!-- author: Bob -->
 <script setup lang="ts">
-import { computed, ref, watchEffect } from 'vue'
-import KnowledgeBasePanel from '@/components/ai/knowledge/KnowledgeBasePanel.vue'
-import AiInterviewerPanel from '@/components/ai/interview/AiInterviewerPanel.vue'
-import ModuleSidebar from '@/components/common/ModuleSidebar.vue'
-import type { PrimaryMenuItem, PrimaryMenuKey } from '@/components/common/moduleSidebarTypes'
+import { nextTick, ref, watch } from 'vue'
 import EditorPanel from '@/components/resume/EditorPanel.vue'
 import PreviewPanel from '@/components/resume/PreviewPanel.vue'
-import { getAppFeatureMode } from '@/config/appFeatureMode'
 
-const sidebarCollapsed = ref(false)
-const activeMenu = ref<PrimaryMenuKey>('resume-editor')
-const appFeatureMode = getAppFeatureMode()
+const mobileActivePane = ref<'editor' | 'preview'>('editor')
+const previewPanelRef = ref<{ refreshPreviewScale?: () => void } | null>(null)
 
-const primaryMenus: PrimaryMenuItem[] = [
-  {
-    key: 'resume-editor',
-    label: '简历编辑',
-    iconPath:
-      'M15 3H8a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V8Zm0 0v5h5M9 13h6M9 17h4',
-  },
-  {
-    key: 'ai-interviewer',
-    label: 'AI面试',
-    iconPath:
-      'M9 3h6M12 3v3m-6 4h12a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-3l-3 2-3-2H6a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2Zm3 3h.01M15 15h.01',
-  },
-  {
-    key: 'knowledge-base',
-    label: '知识库',
-    iconPath:
-      'M6 5.5A2.5 2.5 0 0 1 8.5 3H18v15.5A2.5 2.5 0 0 0 15.5 16H6Zm0 0v11A2.5 2.5 0 0 0 8.5 19H18M10 7h4M10 10h4M10 13h3',
-  },
-]
-
-const availableMenus = computed(() =>
-  appFeatureMode === 'resume-only' ? primaryMenus.filter((menu) => menu.key === 'resume-editor') : primaryMenus
-)
-const showSidebar = computed(() => availableMenus.value.length > 1)
-
-watchEffect(() => {
-  if (!availableMenus.value.some((menu) => menu.key === activeMenu.value)) {
-    activeMenu.value = 'resume-editor'
+watch(mobileActivePane, (pane) => {
+  if (pane === 'preview') {
+    nextTick(() => {
+      previewPanelRef.value?.refreshPreviewScale?.()
+    })
   }
 })
 
-function handleSelectMenu(key: PrimaryMenuKey) {
-  if (!availableMenus.value.some((menu) => menu.key === key)) return
-  activeMenu.value = key
+function switchMobilePane(pane: 'editor' | 'preview') {
+  mobileActivePane.value = pane
 }
 </script>
 
 <template>
-  <div class="app-layout career-theme" :class="{ 'no-sidebar': !showSidebar }">
-    <ModuleSidebar
-      v-if="showSidebar"
-      :collapsed="sidebarCollapsed"
-      :active-menu="activeMenu"
-      :menus="availableMenus"
-      @toggle-collapse="sidebarCollapsed = !sidebarCollapsed"
-      @select-menu="handleSelectMenu"
-    />
+  <div class="app-layout career-theme no-sidebar">
     <div class="workbench-shell">
-      <div class="main-content" :class="`${activeMenu}-workspace`">
-        <template v-if="activeMenu === 'resume-editor'">
-          <EditorPanel />
-          <PreviewPanel />
-        </template>
-        <AiInterviewerPanel v-else-if="activeMenu === 'ai-interviewer'" />
-        <KnowledgeBasePanel v-else />
+      <div class="main-content resume-editor-workspace">
+        <EditorPanel
+          :class="{ 'mobile-pane-hidden': mobileActivePane !== 'editor' }"
+          @switch-mobile-preview="switchMobilePane('preview')"
+        />
+        <PreviewPanel
+          ref="previewPanelRef"
+          :class="{ 'mobile-pane-hidden': mobileActivePane !== 'preview' }"
+        />
+        <nav class="mobile-workspace-tabs" aria-label="移动端视图切换">
+          <button
+            class="mobile-workspace-tab"
+            type="button"
+            :class="{ active: mobileActivePane === 'editor' }"
+            :aria-pressed="mobileActivePane === 'editor'"
+            @click="switchMobilePane('editor')"
+          >
+            编辑简历
+          </button>
+          <button
+            class="mobile-workspace-tab"
+            type="button"
+            :class="{ active: mobileActivePane === 'preview' }"
+            :aria-pressed="mobileActivePane === 'preview'"
+            @click="switchMobilePane('preview')"
+          >
+            实时预览
+          </button>
+        </nav>
       </div>
     </div>
   </div>
@@ -114,28 +97,21 @@ function handleSelectMenu(key: PrimaryMenuKey) {
   min-height: 0;
 }
 
-.ai-interviewer-workspace,
-.knowledge-base-workspace {
-  display: flex;
-}
-
-@media (max-width: 1280px) {
-  .resume-editor-workspace {
-    grid-template-columns: minmax(360px, 1fr) minmax(460px, 42vw);
-  }
+.mobile-workspace-tabs {
+  display: none;
 }
 
 .app-layout.no-sidebar .resume-editor-workspace {
-  grid-template-columns: minmax(540px, 1fr) 860px;
+  grid-template-columns: minmax(480px, 1fr) minmax(560px, 860px);
   column-gap: var(--space-5);
   width: min(100%, 1840px);
   margin: 0 auto;
   padding: 0 var(--space-5);
 }
 
-@media (max-width: 1400px) {
+@media (max-width: 1440px) {
   .app-layout.no-sidebar .resume-editor-workspace {
-    grid-template-columns: minmax(450px, 1fr) 860px;
+    grid-template-columns: minmax(440px, 1fr) minmax(500px, 48vw);
     column-gap: var(--space-4);
     padding: 0 var(--space-3);
   }
@@ -185,26 +161,77 @@ function handleSelectMenu(key: PrimaryMenuKey) {
 @media (max-width: 760px) {
   .app-layout {
     flex-direction: column;
+    height: 100dvh;
+  }
+
+  .workbench-shell {
+    flex: 1;
+    min-height: 0;
   }
 
   .resume-editor-workspace {
-    overflow-y: auto;
-    overflow-x: hidden;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    position: relative;
   }
 
   .app-layout.no-sidebar .resume-editor-workspace {
-    padding-bottom: calc(var(--space-12) + env(safe-area-inset-bottom, 0px));
+    padding-bottom: 0;
   }
 
-  .app-layout.no-sidebar .editor-panel {
-    height: auto;
+  .app-layout.no-sidebar .editor-panel,
+  .app-layout.no-sidebar .preview-panel,
+  .editor-panel,
+  .preview-panel {
+    flex: 1;
+    height: 100%;
     min-height: 0;
-    overflow: visible;
+    overflow: hidden;
   }
 
-  .app-layout.no-sidebar .preview-panel {
-    height: auto;
-    min-height: 0;
+  .app-layout.no-sidebar .editor-panel,
+  .editor-panel {
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding-bottom: calc(74px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .mobile-pane-hidden {
+    display: none !important;
+  }
+
+  .mobile-workspace-tabs {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 45;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-2);
+    padding: 8px var(--space-3) calc(8px + env(safe-area-inset-bottom, 0px));
+    background: var(--color-bg-panel);
+    border-top: 1px solid var(--color-border-default);
+    box-shadow: 0 -6px 18px rgba(15, 23, 42, 0.08);
+  }
+
+  .mobile-workspace-tab {
+    min-height: 40px;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--color-border-default);
+    background: var(--color-bg-subtle);
+    color: var(--color-text-secondary);
+    font-size: var(--font-size-md);
+    font-weight: 700;
+    cursor: pointer;
+  }
+
+  .mobile-workspace-tab.active {
+    border-color: var(--color-brand);
+    background: var(--color-brand);
+    color: var(--color-text-inverse);
+    box-shadow: var(--shadow-xs);
   }
 }
 </style>

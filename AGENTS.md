@@ -30,6 +30,7 @@
 - 涉及项目总览、启动、部署、环境变量、目录结构或接口摘要时，  读取`README.md` 的相关章节，而不是默认全文塞入上下文。
 - 涉及 Harness Engineering 背景、任务路由、知识回写或熵治理细节时，  读取`docs/harness-engineering-workflow.md` 的相关章节。
 - 涉及前端视觉、样式、主题、布局、部署模式能力显示或页面信息架构时，  读取`.rules/frontend-mandatory-rules.md` 与 `docs/design-system/theme-tokens.md` 的相关章节。
+- 涉及三线并行维护（纯前端/Java/Python）、多端能力契约矩阵、Cloudflare Pages 部署与本地分享方案时，  读取`docs/architecture/` 下对应文档的相关章节。
 
 本规范适用于本仓库内所有 AI 协作与自动化改动。
 
@@ -87,6 +88,10 @@
 2. `docs/design-system/theme-tokens.md`
    - 前端主题 Token 与视觉规范，适用于页面重设计、组件样式、模板选择界面、AI 面板、AI 面试页、知识库页和部署模式能力显示规则。
    - 凡涉及前端视觉、样式、主题或交互层级调整时，必须先阅读 `.rules/frontend-mandatory-rules.md` 和本文档。
+3. `docs/architecture/`
+   - `multi-track-maintenance.md`：纯前端、Spring AI、Python AI 三线并行维护模型、分支前缀与按路径触发 CI 规范。
+   - `capability-and-contract-matrix.md`：四种部署形态的能力矩阵、环境变量与接口契约基线。
+   - `cloudflare-and-share-guide.md`：Cloudflare Pages 部署、KV 短链分享、BYOK CORS 边缘代理与服务器配置评估。
 
 ## MCP 使用要求
 

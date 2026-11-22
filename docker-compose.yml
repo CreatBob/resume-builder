@@ -64,6 +64,9 @@ services:
         NGINX_IMAGE: "${NGINX_IMAGE:-nginx:alpine}"
         VITE_APP_FEATURE_MODE: "${VITE_APP_FEATURE_MODE:-resume-only}"
         VITE_RESUME_STORAGE_MODE: "${VITE_RESUME_STORAGE_MODE:-local}"
+        VITE_AI_PROVIDER_MODE: "${VITE_AI_PROVIDER_MODE:-auto}"
+        VITE_AI_PROXY_PATH: "${VITE_AI_PROXY_PATH:-/api/ai-proxy/chat/completions}"
+        VITE_CLOUDFLARE_SHARE_API: "${VITE_CLOUDFLARE_SHARE_API:-/api/shares}"
     ports:
       - "${FRONTEND_PORT:-3000}:80"
     restart: unless-stopped

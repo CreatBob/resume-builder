@@ -1,4 +1,4 @@
-// author: jf
+// author: Bob
 import type {
   AwardEntry,
   BasicInfo,
@@ -6,7 +6,13 @@ import type {
   ProjectEntry,
   WorkEntry,
 } from '@/stores/resume'
-import { getModuleOutputRules, SYSTEM_PROMPT } from './prompts'
+import { postByokChatCompletions } from '@/api/byokAiApi'
+import {
+  buildOptimizeUserPrompt,
+  getModuleOutputRules,
+  SYSTEM_PROMPT,
+  type AiOptimizeScenario,
+} from './prompts'
 import { awardContentHtml, awardHasContent } from '@/utils/awardContent'
 
 function formatBasicLink(label: string, link: { text: string; url: string }): string {
@@ -37,7 +43,9 @@ function formatBasicInfo(info: BasicInfo): string {
     ...info.customItems
       .map((item) => [item.label.trim(), item.value.trim()].filter(Boolean).join('：'))
       .filter(Boolean),
-  ].forEach((line) => lines.push(line))
+  ]
+    .filter(Boolean)
+    .forEach((line) => lines.push(line))
   return lines.join('\n')
 }
 
@@ -132,7 +140,19 @@ export interface ModuleData {
   selfIntro: string
 }
 
-export function buildModuleText(moduleKey: string, data: ModuleData): string {
+export interface AiOptimizeRequestOptions {
+  scenario?: AiOptimizeScenario
+  targetJd?: string
+  customInstruction?: string
+  targetEntryIndex?: number | null
+  followUpAnswers?: string
+}
+
+export function buildModuleText(
+  moduleKey: string,
+  data: ModuleData,
+  targetEntryIndex?: number | null,
+): string {
   switch (moduleKey) {
     case 'basicInfo':
       return formatBasicInfo(data.basicInfo)
@@ -140,10 +160,18 @@ export function buildModuleText(moduleKey: string, data: ModuleData): string {
       return formatEducation(data.educationList)
     case 'skills':
       return stripHtml(data.skills)
-    case 'workExperience':
+    case 'workExperience': {
+      if (typeof targetEntryIndex === 'number' && targetEntryIndex >= 0 && data.workList[targetEntryIndex]) {
+        return formatWork([data.workList[targetEntryIndex]!])
+      }
       return formatWork(data.workList)
-    case 'projectExperience':
+    }
+    case 'projectExperience': {
+      if (typeof targetEntryIndex === 'number' && targetEntryIndex >= 0 && data.projectList[targetEntryIndex]) {
+        return formatProjects([data.projectList[targetEntryIndex]!])
+      }
       return formatProjects(data.projectList)
+    }
     case 'awards':
       return formatAwards(data.awardList)
     case 'selfIntro':
@@ -153,10 +181,63 @@ export function buildModuleText(moduleKey: string, data: ModuleData): string {
   }
 }
 
+export function getTargetEntryLabel(
+  moduleKey: string,
+  data: ModuleData,
+  targetEntryIndex?: number | null,
+): string {
+  if (typeof targetEntryIndex !== 'number' || targetEntryIndex < 0) return ''
+  if (moduleKey === 'workExperience') {
+    const target = data.workList[targetEntryIndex]
+    return target ? [target.company.trim(), target.position.trim()].filter(Boolean).join(' · ') : ''
+  }
+  if (moduleKey === 'projectExperience') {
+    const target = data.projectList[targetEntryIndex]
+    return target?.name.trim() || ''
+  }
+  return ''
+}
+
+export function buildOptimizeContextPrompt(
+  moduleKey: string,
+  moduleData: ModuleData,
+  options: AiOptimizeRequestOptions = {},
+): { label: string; moduleText: string; userMessage: string } {
+  const targetEntryIndex = options.targetEntryIndex ?? null
+  const moduleText = buildModuleText(moduleKey, moduleData, targetEntryIndex)
+  const label = getModuleLabel(moduleKey)
+  const scopedProjects =
+    moduleKey === 'projectExperience' && typeof targetEntryIndex === 'number' && moduleData.projectList[targetEntryIndex]
+      ? [moduleData.projectList[targetEntryIndex]!]
+      : moduleData.projectList
+  const scopedWorks =
+    moduleKey === 'workExperience' && typeof targetEntryIndex === 'number' && moduleData.workList[targetEntryIndex]
+      ? [moduleData.workList[targetEntryIndex]!]
+      : moduleData.workList
+
+  const outputRules = getModuleOutputRules(moduleKey, {
+    projectNames: scopedProjects.map((p) => p.name.trim()).filter(Boolean),
+    workCompanyNames: scopedWorks.map((w) => w.company.trim()).filter(Boolean),
+  })
+
+  const userMessage = buildOptimizeUserPrompt({
+    moduleLabel: label,
+    moduleText,
+    outputRules,
+    jobTitle: moduleData.basicInfo.jobTitle,
+    targetJd: options.targetJd,
+    scenario: options.scenario,
+    customInstruction: options.customInstruction,
+    targetEntryLabel: getTargetEntryLabel(moduleKey, moduleData, targetEntryIndex),
+    followUpAnswers: options.followUpAnswers,
+  })
+
+  return { label, moduleText, userMessage }
+}
+
 export function getModuleLabel(moduleKey: string): string {
   return MODULE_LABELS[moduleKey] ?? moduleKey
 }
-
 
 export interface AiStreamCallbacks {
   onChunk: (text: string) => void
@@ -164,68 +245,63 @@ export interface AiStreamCallbacks {
   onError: (error: string) => void
 }
 
+function classifyByokErrorStatus(status: number, detail: string, useCorsProxy: boolean): string {
+  if (status === 401 || status === 403) {
+    return `API 鉴权失败 (${status})：请检查 API Key 是否正确或额度是否充足。${detail ? ` 详情：${detail}` : ''}`
+  }
+  if (status === 404) {
+    return `接口路径或模型不存在 (404)：请核对 Base URL 与模型名称。${detail ? ` 详情：${detail}` : ''}`
+  }
+  if (status === 429) {
+    return `请求触发限流或配额不足 (429)：请稍后重试或检查账户余额。${detail ? ` 详情：${detail}` : ''}`
+  }
+  if (status === 502 || status === 504) {
+    return `上游模型响应超时 (${status})：${detail || (useCorsProxy ? '代理转发上游超时，请重试。' : '请稍后重试。')}`
+  }
+  return `API 请求失败 (${status}): ${detail || '未知服务错误'}`
+}
+
 export async function optimizeModule(
-  config: { apiUrl: string; apiToken: string; modelName: string },
+  config: { apiUrl: string; apiToken: string; modelName: string; useCorsProxy?: boolean; proxyPath?: string },
   moduleKey: string,
   moduleData: ModuleData,
   callbacks: AiStreamCallbacks,
   signal?: AbortSignal,
+  options: AiOptimizeRequestOptions = {},
 ): Promise<void> {
-  const moduleText = buildModuleText(moduleKey, moduleData)
-  const label = getModuleLabel(moduleKey)
+  const { label, moduleText, userMessage } = buildOptimizeContextPrompt(moduleKey, moduleData, options)
 
   if (!moduleText.trim()) {
     callbacks.onError(`「${label}」模块内容为空，请先填写内容后再优化。`)
     return
   }
 
-  const outputRules = getModuleOutputRules(moduleKey, {
-    projectNames: moduleData.projectList.map((p) => p.name.trim()).filter(Boolean),
-    workCompanyNames: moduleData.workList.map((w) => w.company.trim()).filter(Boolean),
-  })
-  const userMessage = `请优化我简历中的「${label}」模块。
-
-以下是当前内容：
-${moduleText}
-
-请严格遵守以下输出要求：
-${outputRules}`
-
-  let baseUrl = config.apiUrl.trim().replace(/\/+$/, '')
-  if (!baseUrl.includes('/v1/chat/completions')) {
-    if (!baseUrl.endsWith('/v1')) {
-      baseUrl += '/v1'
-    }
-    baseUrl += '/chat/completions'
-  }
-
   try {
-    const response = await fetch(baseUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${config.apiToken}`,
-      },
-      body: JSON.stringify({
-        model: config.modelName,
+    const response = await postByokChatCompletions(
+      {
+        apiUrl: config.apiUrl,
+        apiToken: config.apiToken,
+        modelName: config.modelName,
         messages: [
           { role: 'system', content: SYSTEM_PROMPT },
           { role: 'user', content: userMessage },
         ],
         stream: true,
-      }),
+        useCorsProxy: config.useCorsProxy,
+        proxyPath: config.proxyPath,
+      },
       signal,
-    })
+    )
 
     if (!response.ok) {
       const errorText = await response.text().catch(() => '')
-      callbacks.onError(`API 请求失败 (${response.status}): ${errorText || response.statusText}`)
+      callbacks.onError(classifyByokErrorStatus(response.status, errorText.slice(0, 260), Boolean(config.useCorsProxy)))
       return
     }
 
     const reader = response.body?.getReader()
     if (!reader) {
-      callbacks.onError('无法读取 API 响应流')
+      callbacks.onError('无法读取模型响应流')
       return
     }
 
@@ -233,31 +309,46 @@ ${outputRules}`
     let fullText = ''
     let buffer = ''
 
-    while (true) {
-      const { done, value } = await reader.read()
-      if (done) break
+    const processLine = (rawLine: string) => {
+      const trimmed = rawLine.trim()
+      if (!trimmed || !trimmed.startsWith('data:')) return
+      const data = trimmed.slice(5).trim()
+      if (data === '[DONE]') return
 
-      buffer += decoder.decode(value, { stream: true })
-      const lines = buffer.split('\n')
-      buffer = lines.pop() ?? ''
-
-      for (const line of lines) {
-        const trimmed = line.trim()
-        if (!trimmed || !trimmed.startsWith('data:')) continue
-        const data = trimmed.slice(5).trim()
-        if (data === '[DONE]') continue
-
-        try {
-          const parsed = JSON.parse(data)
-          const content = parsed.choices?.[0]?.delta?.content ?? parsed.choices?.[0]?.message?.content
-          if (content) {
-            fullText += content
-            callbacks.onChunk(fullText)
-          }
-        } catch {
-          // Ignore malformed streaming chunks.
+      try {
+        const parsed = JSON.parse(data)
+        const content = parsed.choices?.[0]?.delta?.content ?? parsed.choices?.[0]?.message?.content
+        if (content) {
+          fullText += content
+          callbacks.onChunk(fullText)
         }
+      } catch {
+        // 忽略半截 JSON 分片，等待后续完整流片段
       }
+    }
+
+    try {
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+
+        buffer += decoder.decode(value, { stream: true })
+        const lines = buffer.split('\n')
+        buffer = lines.pop() ?? ''
+        lines.forEach(processLine)
+      }
+
+      buffer += decoder.decode()
+      if (buffer.trim()) {
+        processLine(buffer)
+      }
+    } finally {
+      reader.releaseLock()
+    }
+
+    if (!fullText.trim()) {
+      callbacks.onError('模型未返回有效文本内容，请检查模型名称与配额后重试。')
+      return
     }
 
     callbacks.onDone(fullText)
@@ -266,16 +357,26 @@ ${outputRules}`
       return
     }
     const message = err instanceof Error ? err.message : String(err)
+    const isNetworkOrCors = err instanceof TypeError || /failed to fetch|networkerror|load failed/i.test(message)
+    if (isNetworkOrCors) {
+      callbacks.onError(
+        config.useCorsProxy
+          ? `边缘代理转发请求失败（${message}）。本地 vite dev 无 Edge Function 时请关闭边缘代理并直接连接支持跨域的模型地址，或部署到 Cloudflare Pages 后使用。`
+          : `网络请求失败（常见原因为目标 API 未开启浏览器跨域 CORS，或接口地址不可达）。可在“模型配置”中开启“通过边缘代理解决跨域”或更换支持直连的服务商。`,
+      )
+      return
+    }
     callbacks.onError(`请求出错: ${message}`)
   }
 }
 
 export interface ParsedAiResponse {
   suggestions: string
+  missingInfo: string
   optimizedContent: string
 }
 
-type ParsedSectionKey = 'suggestions' | 'optimizedContent'
+type ParsedSectionKey = 'suggestions' | 'missingInfo' | 'optimizedContent'
 
 function normalizeSectionLabel(rawLabel: string): ParsedSectionKey | null {
   const normalized = rawLabel
@@ -285,6 +386,15 @@ function normalizeSectionLabel(rawLabel: string): ParsedSectionKey | null {
 
   if (normalized === '优化建议' || normalized === 'suggestion' || normalized === 'suggestions') {
     return 'suggestions'
+  }
+  if (
+    normalized === '待补充信息'
+    || normalized === '待补充量化信息'
+    || normalized === '待补充数据'
+    || normalized === '补充信息'
+    || normalized === 'missinginfo'
+  ) {
+    return 'missingInfo'
   }
   if (
     normalized === '优化后内容'
@@ -307,8 +417,11 @@ function normalizeHeadingText(line: string): string {
 }
 
 function parseSectionHeadingLine(line: string): { key: ParsedSectionKey; inlineContent: string } | null {
-  const normalized = normalizeHeadingText(line)
-  const suggestionsKeywords = ['优化建议', '建议', 'suggestion', 'suggestions']
+  const trimmed = line.trim()
+  const isExplicitHeadingOrBold = /^(?:[#＃]{1,6}\s+|\*\*[^*]+\*\*\s*[：:]?\s*$)/.test(trimmed)
+  const normalized = normalizeHeadingText(trimmed)
+  const suggestionsKeywords = ['优化建议', '修改建议', '改进建议', 'suggestion', 'suggestions']
+  const missingInfoKeywords = ['待补充信息', '待补充量化信息', '待补充数据', '补充信息', 'missinginfo']
   const optimizedKeywords = [
     '优化后内容',
     '优化后的内容',
@@ -318,28 +431,42 @@ function parseSectionHeadingLine(line: string): { key: ParsedSectionKey; inlineC
     'optimizedoutput',
   ]
 
-  const hasSuggestionsKeyword = suggestionsKeywords.some((keyword) => normalized === keyword || normalized.startsWith(`${keyword}：`) || normalized.startsWith(`${keyword}:`))
-  if (hasSuggestionsKeyword) {
-    const inline = line
+  const matchHeadingKeyword = (keywords: string[]) =>
+    keywords.some(
+      (keyword) =>
+        normalized === keyword
+        || (isExplicitHeadingOrBold && (normalized.startsWith(`${keyword}：`) || normalized.startsWith(`${keyword}:`))),
+    )
+
+  if (matchHeadingKeyword(suggestionsKeywords)) {
+    const inline = trimmed
       .replace(/^\s*[-*+]\s*/, '')
       .replace(/^[#＃*\s`]+/, '')
-      .replace(/^(优化建议|建议|suggestions?)\s*[：:：-]?\s*/i, '')
+      .replace(/^(优化建议|修改建议|改进建议|suggestions?)\s*[#*`]*\s*[：:：-]?\s*/i, '')
       .trim()
     return { key: 'suggestions', inlineContent: inline }
   }
 
-  const hasOptimizedKeyword = optimizedKeywords.some((keyword) => normalized === keyword || normalized.startsWith(`${keyword}：`) || normalized.startsWith(`${keyword}:`))
-  if (hasOptimizedKeyword) {
-    const inline = line
+  if (matchHeadingKeyword(missingInfoKeywords)) {
+    const inline = trimmed
       .replace(/^\s*[-*+]\s*/, '')
       .replace(/^[#＃*\s`]+/, '')
-      .replace(/^(优化后内容|优化后的内容|优化内容|优化结果|optimized\s*content|optimized\s*output)\s*[：:：-]?\s*/i, '')
+      .replace(/^(待补充量化信息|待补充信息|待补充数据|补充信息|missing\s*info)\s*[#*`]*\s*[：:：-]?\s*/i, '')
+      .trim()
+    return { key: 'missingInfo', inlineContent: inline }
+  }
+
+  if (matchHeadingKeyword(optimizedKeywords)) {
+    const inline = trimmed
+      .replace(/^\s*[-*+]\s*/, '')
+      .replace(/^[#＃*\s`]+/, '')
+      .replace(/^(优化后内容|优化后的内容|优化内容|优化结果|optimized\s*content|optimized\s*output)\s*[#*`]*\s*[：:：-]?\s*/i, '')
       .trim()
     return { key: 'optimizedContent', inlineContent: inline }
   }
 
   const strictMatch = line.match(
-    /^(?:[-*+]\s*)?(?:[#＃]{1,6}\s*)?(?:\*\*)?\s*(优化建议|Suggestions?|优化后内容|优化后的内容|Optimized Content)\s*(?:\*\*)?\s*(?:[：:]\s*(.*))?$/i,
+    /^(?:[-*+]\s*)?(?:[#＃]{1,6}\s*)?(?:\*\*)?\s*(优化建议|Suggestions?|待补充信息|待补充量化信息|Missing Info|优化后内容|优化后的内容|Optimized Content)\s*(?:\*\*)?\s*(?:[：:]\s*(.*))?$/i,
   )
   if (!strictMatch) return null
   const key = normalizeSectionLabel(strictMatch[1] ?? '')
@@ -350,12 +477,13 @@ function parseSectionHeadingLine(line: string): { key: ParsedSectionKey; inlineC
 export function parseAiResponse(text: string): ParsedAiResponse {
   const normalized = text.replace(/\r\n/g, '\n').trim()
   if (!normalized) {
-    return { suggestions: '', optimizedContent: '' }
+    return { suggestions: '', missingInfo: '', optimizedContent: '' }
   }
 
   const lines = normalized.split('\n')
   const sections: Record<ParsedSectionKey, string[]> = {
     suggestions: [],
+    missingInfo: [],
     optimizedContent: [],
   }
 
@@ -377,11 +505,13 @@ export function parseAiResponse(text: string): ParsedAiResponse {
   }
 
   const suggestions = sections.suggestions.join('\n').trim()
+  const missingInfo = sections.missingInfo.join('\n').trim()
   const optimizedContent = sections.optimizedContent.join('\n').trim()
 
-  if (!suggestions && !optimizedContent) {
+  if (!suggestions && !missingInfo && !optimizedContent) {
     return {
       suggestions: '',
+      missingInfo: '',
       optimizedContent: normalized,
     }
   }
@@ -389,12 +519,14 @@ export function parseAiResponse(text: string): ParsedAiResponse {
   if (!suggestions && optimizedContent) {
     return {
       suggestions: '本次模型未返回“优化建议”分段，仅返回了“优化后内容”。可点击“重新生成”重试。',
+      missingInfo,
       optimizedContent,
     }
   }
 
   return {
     suggestions,
+    missingInfo,
     optimizedContent,
   }
 }

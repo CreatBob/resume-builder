@@ -1,4 +1,6 @@
-// author: jf
+// author: Bob
+import { sanitizeSafeHref } from '@/services/htmlSanitizerService'
+
 export type MetaIconKey =
   | 'phone'
   | 'mail'
@@ -64,8 +66,5 @@ export function isFilledIcon(icon: MetaIconKey): boolean {
 }
 
 export function toHref(value: string): string {
-  const text = value.trim()
-  if (!text) return ''
-  if (/^(https?:\/\/|mailto:|tel:)/i.test(text)) return text
-  return `https://${text}`
+  return sanitizeSafeHref(value)
 }

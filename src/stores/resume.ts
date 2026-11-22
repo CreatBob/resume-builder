@@ -1,6 +1,9 @@
+// author: Bob
 import { defineStore } from 'pinia'
 import { computed, reactive, ref, watch } from 'vue'
+import { DEFAULT_RESUME_AVATAR } from '@/config/defaultAvatar'
 import { getResumeStorageMode } from '@/config/resumeStorageMode'
+import { cleanupLocalCloudflareShareForDeletedResume } from '@/services/localResumeShareService'
 import {
   enableResumeShare,
   ResumeStorageConflictError,
@@ -11,7 +14,6 @@ import {
   type ResumeStorageKind,
 } from '@/services/resumeStorageService'
 import { normalizeResumeTemplateKey, type ResumeTemplateKey } from '@/templates/resume'
-// author: Bob
 
 export interface BasicInfo {
   name: string
@@ -147,20 +149,7 @@ function genId(): string {
   return `item_${Date.now()}_${++_idCounter}`
 }
 
-const SAMPLE_AVATAR = `data:image/svg+xml;utf8,${encodeURIComponent(`
-<svg xmlns="http://www.w3.org/2000/svg" width="240" height="300" viewBox="0 0 240 300">
-  <defs>
-    <linearGradient id="bg" x1="0" x2="1" y1="0" y2="1">
-      <stop offset="0%" stop-color="#dbeafe" />
-      <stop offset="100%" stop-color="#bfdbfe" />
-    </linearGradient>
-  </defs>
-  <rect width="240" height="300" fill="url(#bg)" />
-  <circle cx="120" cy="96" r="52" fill="#ffffff" fill-opacity="0.82" />
-  <path d="M52 260c14-54 56-84 108-84s94 30 108 84" fill="#ffffff" fill-opacity="0.82" />
-  <text x="120" y="284" text-anchor="middle" font-size="28" font-family="Arial, sans-serif" fill="#1d4ed8">CV</text>
-</svg>
-`)}` as const
+const SAMPLE_AVATAR = DEFAULT_RESUME_AVATAR
 
 function createEmptyBasicLink(): BasicLink {
   return {
@@ -772,8 +761,11 @@ export const useResumeStore = defineStore('resume', () => {
   async function deleteCurrentResume() {
     const currentDoc = currentResume.value
     if (!currentDoc || resumeDocuments.value.length <= 1) return
-    await resumeStorage.delete(currentDoc.id)
-    resumeDocuments.value = resumeDocuments.value.filter((doc) => doc.id !== currentDoc.id)
+    const deletedId = currentDoc.id
+    await resumeStorage.delete(deletedId)
+    localStorage.removeItem(`resume-builder-target-jd:${deletedId}`)
+    void cleanupLocalCloudflareShareForDeletedResume(deletedId)
+    resumeDocuments.value = resumeDocuments.value.filter((doc) => doc.id !== deletedId)
     const nextDoc = resumeDocuments.value[0]
     if (nextDoc) {
       await switchResume(nextDoc.id, false)
@@ -830,7 +822,18 @@ export const useResumeStore = defineStore('resume', () => {
   }
 
   const currentResume = computed(() => resumeDocuments.value.find((doc) => doc.id === currentResumeId.value) ?? null)
-  const canUseShare = computed(() => resolvedStorageKind.value === 'remote')
+  const canUseShare = computed(() => Boolean(currentResume.value))
+
+  function snapshotCurrentResumeForShare() {
+    const doc = currentResume.value
+    return {
+      documentId: doc?.id || currentResumeId.value || 'local-resume',
+      title: doc?.title || basicInfo.name.trim() || '我的简历',
+      content: snapshotResumeData(),
+      version: doc?.version ?? 1,
+      updatedAt: doc?.updatedAt || new Date().toISOString(),
+    }
+  }
 
   let saveTimer: ReturnType<typeof setTimeout> | null = null
   watch(
@@ -912,6 +915,7 @@ export const useResumeStore = defineStore('resume', () => {
     renameCurrentResume,
     deleteCurrentResume,
     shareCurrentResume,
+    snapshotCurrentResumeForShare,
     autoSaveDelayMs: AUTO_SAVE_DELAY_MS,
     nextAutoSaveAt,
     lastSavedAt,

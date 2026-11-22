@@ -1,4 +1,4 @@
-<!-- author: jf -->
+<!-- author: Bob -->
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useResumeStore } from '@/stores/resume'
@@ -213,24 +213,24 @@ onUnmounted(() => {
   height: 52px;
   padding: 0;
   border-radius: 50%;
-  border: 1px solid #2d2521;
-  background: #2d2521;
-  color: #fff;
+  border: 1px solid var(--color-border-default);
+  background: var(--color-bg-panel);
+  color: var(--color-brand);
   font-size: 14px;
   font-weight: 700;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 10px 18px rgba(45, 37, 33, 0.22);
+  box-shadow: var(--shadow-md);
   transition: transform 0.16s ease, box-shadow 0.16s ease, background-color 0.16s ease;
   position: relative;
 }
 
 .floating-tool-btn:hover {
   transform: translateY(-1px);
-  box-shadow: 0 14px 24px rgba(45, 37, 33, 0.26);
-  background: #1f1916;
+  box-shadow: var(--shadow-lg);
+  background: var(--color-brand-subtle);
 }
 
 .module-switch-anchor {
@@ -238,12 +238,14 @@ onUnmounted(() => {
 }
 
 .ai-tool-btn {
-  background: #d97745;
-  border-color: #d97745;
+  background: var(--color-brand);
+  border-color: var(--color-brand);
+  color: var(--color-text-inverse);
 }
 
 .ai-tool-btn:hover {
-  background: #c96a3b;
+  background: var(--color-brand-hover);
+  border-color: var(--color-brand-hover);
 }
 
 .btn-module-switch-icon {
@@ -255,9 +257,9 @@ onUnmounted(() => {
   min-width: 22px;
   height: 22px;
   padding: 0 6px;
-  border-radius: 999px;
-  background: #d97745;
-  color: #fff;
+  border-radius: var(--radius-full);
+  background: var(--color-brand);
+  color: var(--color-text-inverse);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -266,7 +268,7 @@ onUnmounted(() => {
   position: absolute;
   right: -4px;
   top: -4px;
-  border: 2px solid #f7f2ec;
+  border: 2px solid var(--color-bg-app);
 }
 
 .ai-tool-text {
@@ -282,15 +284,15 @@ onUnmounted(() => {
   width: 288px;
   max-width: min(288px, calc(100vw - 96px));
   padding: 10px;
-  border: 1px solid #e9ded0;
-  border-radius: 12px;
-  background: #fff;
-  box-shadow: 0 16px 30px rgba(45, 37, 33, 0.16);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-lg);
+  background: var(--color-bg-panel);
+  box-shadow: var(--shadow-lg);
   z-index: 20;
 }
 
 .module-switch-popover-title {
-  color: #8a7461;
+  color: var(--color-text-secondary);
   font-size: 12px;
   font-weight: 700;
 }
@@ -307,10 +309,10 @@ onUnmounted(() => {
   width: 28px;
   height: 28px;
   padding: 0;
-  border: 1px solid #ddcfbf;
-  border-radius: 8px;
-  background: #fff;
-  color: #8a7461;
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-panel);
+  color: var(--color-text-secondary);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -328,8 +330,9 @@ onUnmounted(() => {
 }
 
 .btn-reset-order-icon:hover:not(:disabled) {
-  border-color: #d97745;
-  color: #d97745;
+  border-color: var(--color-brand);
+  color: var(--color-brand);
+  background: var(--color-brand-subtle);
 }
 
 .btn-reset-order-icon:disabled {
@@ -354,7 +357,7 @@ onUnmounted(() => {
   border-radius: 10px;
   padding: 10px 12px;
   border: 1px solid transparent;
-  background: #f2ece5;
+  background: var(--color-bg-subtle);
   transition: all 0.18s ease;
 }
 
@@ -367,8 +370,8 @@ onUnmounted(() => {
 }
 
 .module-switch-item.active {
-  background: #ffffff;
-  border-color: #e9ded0;
+  background: var(--color-bg-panel);
+  border-color: var(--color-border-default);
 }
 
 .module-switch-item.muted {
@@ -380,8 +383,8 @@ onUnmounted(() => {
 }
 
 .module-switch-item.drag-over {
-  border-color: #d97745;
-  box-shadow: 0 0 0 1px rgba(217, 119, 69, 0.2) inset;
+  border-color: var(--color-brand);
+  box-shadow: 0 0 0 1px var(--state-focus-ring) inset;
 }
 
 .module-switch-info {
@@ -392,7 +395,7 @@ onUnmounted(() => {
 }
 
 .drag-handle {
-  color: #a08c7b;
+  color: var(--color-text-tertiary);
   letter-spacing: -1px;
   font-size: 13px;
   line-height: 1;
@@ -412,18 +415,18 @@ onUnmounted(() => {
   width: 16px;
   height: 16px;
   fill: none;
-  stroke: #8a7461;
+  stroke: var(--color-text-secondary);
   stroke-width: 1.8;
   stroke-linecap: round;
   stroke-linejoin: round;
 }
 
 .module-switch-item.active .module-switch-icon-svg {
-  stroke: #d97745;
+  stroke: var(--color-brand);
 }
 
 .module-switch-label {
-  color: #2d2521;
+  color: var(--color-text-primary);
   font-size: 13px;
   font-weight: 600;
   white-space: nowrap;
@@ -449,12 +452,12 @@ onUnmounted(() => {
 }
 
 .order-btn {
-  width: 22px;
-  height: 22px;
-  border: 1px solid #ddcfbf;
-  border-radius: 6px;
-  background: #fff;
-  color: #8a7461;
+  width: 24px;
+  height: 24px;
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-panel);
+  color: var(--color-text-secondary);
   font-size: 12px;
   line-height: 1;
   font-weight: 700;
@@ -462,8 +465,9 @@ onUnmounted(() => {
 }
 
 .order-btn:hover:not(:disabled) {
-  border-color: #d97745;
-  color: #d97745;
+  border-color: var(--color-brand);
+  color: var(--color-brand);
+  background: var(--color-brand-subtle);
 }
 
 .order-btn:disabled {
@@ -488,7 +492,7 @@ onUnmounted(() => {
   position: absolute;
   inset: 0;
   border-radius: 999px;
-  background: #b8afa6;
+  background: var(--color-border-strong);
   transition: 0.2s ease;
 }
 
@@ -500,12 +504,12 @@ onUnmounted(() => {
   left: 3px;
   top: 3px;
   border-radius: 50%;
-  background: #ffffff;
+  background: var(--color-text-inverse);
   transition: 0.2s ease;
 }
 
 .toggle-switch input:checked + .toggle-slider {
-  background: #d97745;
+  background: var(--color-brand);
 }
 
 .toggle-switch input:checked + .toggle-slider::before {
@@ -525,31 +529,7 @@ onUnmounted(() => {
 
 @media (max-width: 760px) {
   .floating-tools {
-    position: fixed;
-    right: 12px;
-    bottom: calc(88px + env(safe-area-inset-bottom, 0px));
-    top: auto;
-    margin-right: 0;
-    z-index: 34;
-  }
-
-  .floating-tools-stack {
-    transform: none;
-    gap: 10px;
-  }
-
-  .floating-tool-btn {
-    width: 50px;
-    height: 50px;
-  }
-
-  .module-switch-popover {
-    left: auto;
-    right: 0;
-    top: auto;
-    bottom: calc(100% + 10px);
-    max-height: min(52vh, 360px);
-    overflow-y: auto;
+    display: none;
   }
 }
 </style>

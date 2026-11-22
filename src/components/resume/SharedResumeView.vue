@@ -1,30 +1,31 @@
 <script setup lang="ts">
-import { computed, nextTick, onMounted, onUnmounted, ref } from 'vue'
+import { computed, onUnmounted, ref } from 'vue'
 import type { SharedResumeDocument } from '@/services/resumeStorageService'
 import { type ResumeTemplateDefinition, getResumeTemplateByKey, normalizeResumeTemplateKey } from '@/templates/resume'
 import { provideResumeTemplateRuntime } from '@/templates/shared/resumeTemplateRuntime'
 import { createResumeTemplateRuntimeFromSharedDocument } from '@/services/resumeTemplateRuntimeService'
 import { exportResumePdf } from '@/services/resumePdfExportService'
 import { copyTextToClipboard } from '@/services/clipboardService'
+import ResumeScaledPreview from '@/components/resume/ResumeScaledPreview.vue'
 // author: Bob
 
-const props = defineProps<{
-  document: SharedResumeDocument
-  shareUrl: string
-}>()
+const props = withDefaults(
+  defineProps<{
+    document: SharedResumeDocument
+    shareUrl: string
+    shareSource?: 'backend' | 'cloudflare' | 'offline'
+  }>(),
+  {
+    shareSource: 'backend',
+  },
+)
 
-const resumeRef = ref<HTMLElement | null>(null)
+const scaledPreviewRef = ref<{ getPaperElement: () => HTMLElement | null; recalculate: () => void } | null>(null)
 const exporting = ref(false)
 const exportProgress = ref(0)
 const exportProgressText = ref('')
 const actionFeedback = ref('')
 const actionFeedbackType = ref<'success' | 'error' | ''>('')
-const pageBreaks = ref<number[]>([])
-
-const A4_WIDTH = 794
-const A4_RATIO = 297 / 210
-const A4_HEIGHT = Math.round(A4_WIDTH * A4_RATIO)
-const PAGE_BREAK_TOLERANCE = 1
 
 const runtime = createResumeTemplateRuntimeFromSharedDocument(props.document)
 provideResumeTemplateRuntime(runtime)
@@ -34,47 +35,43 @@ const currentTemplate = computed<ResumeTemplateDefinition>(() =>
 )
 const currentTemplateComponent = computed(() => currentTemplate.value.component)
 const displayResumeTitle = computed(() => props.document.title || runtime.store.basicInfo.name || '简历预览')
-
-function updatePageBreaks() {
-  if (!resumeRef.value) return
-  const contentHeight = resumeRef.value.scrollHeight
-  const pageHeight = A4_HEIGHT
-  const overflowHeight = contentHeight - pageHeight
-  if (overflowHeight <= PAGE_BREAK_TOLERANCE) {
-    pageBreaks.value = []
-    return
-  }
-  const breaks: number[] = []
-  const totalPages = 1 + Math.ceil((overflowHeight - PAGE_BREAK_TOLERANCE) / pageHeight)
-  for (let i = 1; i < totalPages; i += 1) {
-    breaks.push(Math.round(i * pageHeight))
-  }
-  pageBreaks.value = breaks
-}
-
-let resizeObserver: ResizeObserver | null = null
-
-onMounted(() => {
-  nextTick(() => {
-    updatePageBreaks()
-    if (!resumeRef.value) return
-    resizeObserver = new ResizeObserver(() => updatePageBreaks())
-    resizeObserver.observe(resumeRef.value)
-  })
+const shareBadgeText = computed(() => {
+  if (props.shareSource === 'offline') return '离线快照简历'
+  if (props.shareSource === 'cloudflare') return '在线分享简历'
+  return '匿名分享简历'
 })
-
-onUnmounted(() => {
-  resizeObserver?.disconnect()
+const shareHintText = computed(() => {
+  if (props.shareSource === 'offline') {
+    return '当前链接为纯前端压缩编码快照（仅编码压缩，未加密），数据直接解码自链接本身，不依赖后端服务器。'
+  }
+  return '当前链接为公开只读分享链接，打开即可查看已保存内容。'
 })
+const previewWatchKey = computed(() =>
+  `${props.document.id}:${props.document.version}:${currentTemplate.value.key}`,
+)
+
+let feedbackTimer: ReturnType<typeof window.setTimeout> | null = null
 
 function notifyAction(message: string, type: 'success' | 'error') {
+  if (feedbackTimer !== null) {
+    window.clearTimeout(feedbackTimer)
+    feedbackTimer = null
+  }
   actionFeedback.value = message
   actionFeedbackType.value = type
-  window.setTimeout(() => {
+  feedbackTimer = window.setTimeout(() => {
+    feedbackTimer = null
     actionFeedback.value = ''
     actionFeedbackType.value = ''
   }, 2400)
 }
+
+onUnmounted(() => {
+  if (feedbackTimer !== null) {
+    window.clearTimeout(feedbackTimer)
+    feedbackTimer = null
+  }
+})
 
 async function setExportProgress(percent: number, text: string) {
   exportProgress.value = Math.max(0, Math.min(100, Math.round(percent)))
@@ -82,13 +79,14 @@ async function setExportProgress(percent: number, text: string) {
 }
 
 async function handleDownloadPdf() {
-  if (!resumeRef.value || exporting.value) return
+  const paperEl = scaledPreviewRef.value?.getPaperElement()
+  if (!paperEl || exporting.value) return
   exporting.value = true
   exportProgress.value = 0
   exportProgressText.value = '准备导出...'
   try {
     await exportResumePdf({
-      sourceNode: resumeRef.value,
+      sourceNode: paperEl,
       filename: `${runtime.store.basicInfo.name || props.document.title || '简历'}_resume.pdf`,
       mode: 'hd',
       onProgress: setExportProgress,
@@ -123,7 +121,8 @@ function handleBackHome() {
       <section class="shared-resume-main">
         <div class="shared-resume-head">
           <div>
-            <p class="shared-kicker">匿名分享简历</p>
+            <p class="shared-kicker">{{ shareBadgeText }}</p>
+            <h1 class="shared-mobile-title">{{ displayResumeTitle }}</h1>
             <p class="shared-head-desc">在线查看这份公开分享的简历内容。</p>
           </div>
           <div class="shared-meta">
@@ -132,20 +131,24 @@ function handleBackHome() {
           </div>
         </div>
 
-        <div class="shared-paper-board">
-          <div class="shared-paper-wrapper" :style="{ width: `${A4_WIDTH}px` }">
-            <div ref="resumeRef" class="shared-paper" :style="{ width: `${A4_WIDTH}px`, minHeight: `${A4_HEIGHT}px` }">
-              <component :is="currentTemplateComponent" />
-            </div>
-            <div
-              v-for="(pos, idx) in pageBreaks"
-              :key="idx"
-              class="shared-page-line"
-              :style="{ top: `${pos}px` }"
-            >
-              <span>第{{ idx + 2 }}页</span>
-            </div>
+        <div v-if="actionFeedback" class="shared-feedback mobile-only-feedback" :class="actionFeedbackType">
+          {{ actionFeedback }}
+        </div>
+
+        <div v-if="exporting" class="shared-progress mobile-only-progress">
+          <div class="shared-progress-head">
+            <span>{{ exportProgressText || '导出中...' }}</span>
+            <strong>{{ exportProgress }}%</strong>
           </div>
+          <div class="shared-progress-track">
+            <span class="shared-progress-fill" :style="{ width: `${exportProgress}%` }"></span>
+          </div>
+        </div>
+
+        <div class="shared-paper-board">
+          <ResumeScaledPreview ref="scaledPreviewRef" :watch-key="previewWatchKey" :horizontal-padding="16">
+            <component :is="currentTemplateComponent" />
+          </ResumeScaledPreview>
         </div>
       </section>
 
@@ -175,10 +178,18 @@ function handleBackHome() {
 
         <div class="shared-action-card detail">
           <p class="detail-title">分享说明</p>
-          <p class="detail-text">当前链接为匿名公开访问链接，打开即可查看当前简历的最新保存内容。</p>
+          <p class="detail-text">{{ shareHintText }}</p>
           <p class="detail-text">下载按钮会导出与当前模板一致的 PDF 版本。</p>
         </div>
       </aside>
+    </div>
+
+    <div class="shared-mobile-bottom-bar" aria-label="分享页操作栏">
+      <button class="mobile-bar-secondary" type="button" @click="handleCopyShareUrl">复制链接</button>
+      <button class="mobile-bar-secondary" type="button" :disabled="exporting" @click="handleDownloadPdf">
+        {{ exporting ? '导出中...' : '下载 PDF' }}
+      </button>
+      <button class="mobile-bar-primary" type="button" @click="handleBackHome">我也要写</button>
     </div>
   </div>
 </template>
@@ -251,68 +262,29 @@ function handleBackHome() {
 }
 
 .shared-paper-board {
-  padding: 18px;
-  border: 1px solid rgba(216, 224, 235, 0.9);
-  border-radius: 22px;
-  background: rgba(255, 255, 255, 0.62);
+  padding: 14px;
+  border: 1px solid var(--color-border-default);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.78);
   box-shadow: var(--shadow-sm);
   backdrop-filter: blur(10px);
-  overflow-x: auto;
-  overflow-y: hidden;
-}
-
-.shared-paper-wrapper {
-  position: relative;
-  margin: 0 auto;
-  padding-bottom: 8px;
-}
-
-.shared-paper {
-  box-sizing: border-box;
-  background: #fff;
-  border: 1px solid var(--color-border-strong);
-  border-radius: 4px;
-  color: #000;
-  box-shadow: var(--shadow-md);
-}
-
-.shared-paper > :deep(*) {
-  min-height: inherit;
-}
-
-.shared-paper.pdf-exporting {
-  box-shadow: none;
-  border: none;
-  border-radius: 0;
-  min-height: 0 !important;
-}
-
-.shared-page-line {
-  position: absolute;
-  left: 16px;
-  right: 16px;
-  transform: translateY(-6px);
   display: flex;
-  align-items: center;
-  gap: 8px;
-  pointer-events: none;
-  z-index: 2;
+  flex-direction: column;
+  min-width: 0;
 }
 
-.shared-page-line::before,
-.shared-page-line::after {
-  content: '';
-  flex: 1;
-  height: 1px;
-  border-top: 1px dashed #d97745;
+.shared-mobile-title {
+  display: none;
+  margin-top: 4px;
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--color-text-primary);
 }
 
-.shared-page-line span {
-  color: #d97745;
-  font-size: 10px;
-  font-weight: 600;
-  background: rgba(255, 255, 255, 0.92);
-  padding: 0 4px;
+.mobile-only-feedback,
+.mobile-only-progress,
+.shared-mobile-bottom-bar {
+  display: none;
 }
 
 .shared-resume-side {
@@ -454,15 +426,36 @@ function handleBackHome() {
 }
 
 @media (max-width: 820px) {
+  .shared-resume-page {
+    padding-bottom: calc(74px + env(safe-area-inset-bottom, 0px));
+  }
+
   .shared-resume-shell {
-    width: min(100vw - 24px, 100%);
-    padding: 18px 0 28px;
-    gap: 16px;
+    width: min(100vw - 20px, 100%);
+    padding: 14px 0 24px;
+    gap: 12px;
   }
 
   .shared-resume-head {
     flex-direction: column;
     align-items: flex-start;
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+
+  .shared-mobile-title {
+    display: block;
+  }
+
+  .shared-head-desc,
+  .shared-resume-side {
+    display: none;
+  }
+
+  .mobile-only-feedback,
+  .mobile-only-progress {
+    display: block;
+    margin-bottom: 10px;
   }
 
   .shared-meta {
@@ -470,16 +463,50 @@ function handleBackHome() {
   }
 
   .shared-paper-board {
-    padding: 10px;
+    padding: 8px;
+    border-radius: 14px;
   }
 
-  .action-card-title {
-    font-size: 24px;
+  .shared-mobile-bottom-bar {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 50;
+    display: grid;
+    grid-template-columns: 1fr 1fr 1.15fr;
+    gap: 8px;
+    padding: 8px 12px calc(8px + env(safe-area-inset-bottom, 0px));
+    background: rgba(255, 255, 255, 0.96);
+    border-top: 1px solid var(--color-border-default);
+    box-shadow: 0 -6px 20px rgba(15, 23, 42, 0.08);
+    backdrop-filter: blur(8px);
   }
 
-  .action-primary,
-  .action-secondary {
-    font-size: 16px;
+  .mobile-bar-primary,
+  .mobile-bar-secondary {
+    min-height: 42px;
+    border-radius: var(--radius-md);
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+
+  .mobile-bar-primary {
+    border: none;
+    background: var(--color-brand);
+    color: var(--color-text-inverse);
+  }
+
+  .mobile-bar-secondary {
+    border: 1px solid var(--color-border-default);
+    background: var(--color-bg-panel);
+    color: var(--color-text-primary);
+  }
+
+  .mobile-bar-secondary:disabled {
+    opacity: 0.65;
+    cursor: wait;
   }
 }
 </style>

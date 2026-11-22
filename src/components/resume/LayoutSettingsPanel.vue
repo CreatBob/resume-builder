@@ -1,4 +1,4 @@
-<!-- author: jf -->
+<!-- author: Bob -->
 <script setup lang="ts">
 import { computed } from 'vue'
 import { RESUME_LAYOUT_LIMITS, useResumeStore, type ResumeLayoutSettingKey } from '@/stores/resume'
@@ -101,9 +101,9 @@ function handleResetLayoutSettings() {
 
 <style scoped>
 .layout-settings {
-  background: #fff;
+  background: var(--color-bg-panel);
   border: none;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   padding: 0;
 }
 
@@ -116,7 +116,7 @@ function handleResetLayoutSettings() {
 }
 
 .layout-settings-title {
-  color: #2d2521;
+  color: var(--color-text-primary);
   font-size: 14px;
   font-weight: 700;
 }
@@ -124,10 +124,10 @@ function handleResetLayoutSettings() {
 .btn-reset-layout {
   height: 28px;
   padding: 0 9px;
-  border-radius: 7px;
-  border: 1px solid #ddcfbf;
-  background: #fff;
-  color: #2d2521;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border-default);
+  background: var(--color-bg-panel);
+  color: var(--color-text-secondary);
   font-size: 12px;
   font-weight: 600;
   cursor: pointer;
@@ -135,9 +135,9 @@ function handleResetLayoutSettings() {
 }
 
 .btn-reset-layout:hover:not(:disabled) {
-  border-color: #d97745;
-  color: #d97745;
-  background: #fff9f4;
+  border-color: var(--color-brand);
+  color: var(--color-brand);
+  background: var(--color-brand-subtle);
 }
 
 .btn-reset-layout:disabled {
@@ -156,7 +156,7 @@ function handleResetLayoutSettings() {
 }
 
 .layout-setting-group-title {
-  color: #8a7461;
+  color: var(--color-text-secondary);
   font-size: 12px;
   font-weight: 700;
 }
@@ -169,23 +169,23 @@ function handleResetLayoutSettings() {
 }
 
 .layout-setting-label {
-  color: #2d2521;
+  color: var(--color-text-primary);
   font-size: 12px;
   font-weight: 600;
 }
 
 .layout-range {
   width: 100%;
-  accent-color: #d97745;
+  accent-color: var(--color-brand);
 }
 
 .layout-number-wrap {
   height: 30px;
   display: inline-flex;
   align-items: center;
-  border: 1px solid #ddcfbf;
-  border-radius: 8px;
-  background: #fff;
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-panel);
   overflow: hidden;
 }
 
@@ -195,7 +195,7 @@ function handleResetLayoutSettings() {
   height: 100%;
   border: none;
   background: transparent;
-  color: #2d2521;
+  color: var(--color-text-primary);
   font-size: 12px;
   font-weight: 600;
   text-align: right;
@@ -204,7 +204,7 @@ function handleResetLayoutSettings() {
 
 .layout-unit {
   padding: 0 7px 0 3px;
-  color: #8a7461;
+  color: var(--color-text-tertiary);
   font-size: 11px;
   font-weight: 600;
 }
@@ -217,6 +217,18 @@ function handleResetLayoutSettings() {
 
   .layout-number-wrap {
     width: 86px;
+  }
+}
+
+@media (max-width: 760px) {
+  .layout-setting-row {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+
+  .layout-number-wrap {
+    width: 96px;
+    height: 34px;
   }
 }
 </style>

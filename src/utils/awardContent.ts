@@ -1,4 +1,5 @@
-// author: jf
+// author: Bob
+import { sanitizeRichHtml } from '@/services/htmlSanitizerService'
 import type { AwardEntry } from '@/stores/resume'
 
 function escapeHtml(value: string): string {
@@ -33,7 +34,7 @@ export function awardHasContent(award: Pick<AwardEntry, 'name' | 'description' |
 
 export function awardContentHtml(award: Pick<AwardEntry, 'name' | 'description'>): string {
   const name = award.name.trim()
-  const description = award.description.trim()
+  const description = sanitizeRichHtml(award.description).trim()
   if (!description) return escapeHtml(name)
   if (!name) return description
 

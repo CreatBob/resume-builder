@@ -10,6 +10,7 @@ import {
 } from '@/stores/resume'
 import type { MetaIconKey } from './metaIcons'
 import { toHref } from './metaIcons'
+import { sanitizeRichHtml, sanitizeSafeAvatar, sanitizeSafeHref } from '@/services/htmlSanitizerService'
 import { createLayoutStyle, useInjectedResumeTemplateRuntime } from './resumeTemplateRuntime'
 import { awardContentHtml, awardHasContent, htmlToPlainText } from '@/utils/awardContent'
 
@@ -68,42 +69,70 @@ export function useResumeTemplateData() {
   const injectedRuntime = useInjectedResumeTemplateRuntime()
   const rawStore = injectedRuntime?.store ?? useResumeStore()
 
-  const previewBasicInfo = computed<BasicInfo>(() => ({
-    ...rawStore.basicInfo,
-    website: {
-      text: rawStore.basicInfo.website.text || rawStore.basicInfo.website.url,
-      url: rawStore.basicInfo.website.url,
-    },
-    github: {
-      text: rawStore.basicInfo.github.text || rawStore.basicInfo.github.url,
-      url: rawStore.basicInfo.github.url,
-    },
-    blog: {
-      text: rawStore.basicInfo.blog.text || rawStore.basicInfo.blog.url,
-      url: rawStore.basicInfo.blog.url,
-    },
-    customItems: rawStore.basicInfo.customItems.filter((item) => hasCustomBasicItemContent(item)),
-  }))
+  const previewBasicInfo = computed<BasicInfo>(() => {
+    const websiteUrl = sanitizeSafeHref(rawStore.basicInfo.website.url)
+    const githubUrl = sanitizeSafeHref(rawStore.basicInfo.github.url)
+    const blogUrl = sanitizeSafeHref(rawStore.basicInfo.blog.url)
+    return {
+      ...rawStore.basicInfo,
+      avatar: sanitizeSafeAvatar(rawStore.basicInfo.avatar),
+      website: {
+        text: rawStore.basicInfo.website.text || websiteUrl,
+        url: websiteUrl,
+      },
+      github: {
+        text: rawStore.basicInfo.github.text || githubUrl,
+        url: githubUrl,
+      },
+      blog: {
+        text: rawStore.basicInfo.blog.text || blogUrl,
+        url: blogUrl,
+      },
+      customItems: rawStore.basicInfo.customItems.filter((item) => hasCustomBasicItemContent(item)),
+    }
+  })
 
   const previewEducationList = computed<EducationEntry[]>(() =>
-    rawStore.educationList.filter((entry) => hasEducationContent(entry))
+    rawStore.educationList
+      .filter((entry) => hasEducationContent(entry))
+      .map((entry) => ({
+        ...entry,
+        description: sanitizeRichHtml(entry.description),
+      }))
   )
 
-  const previewSkills = computed(() => (hasRichText(rawStore.skills) ? rawStore.skills : ''))
+  const previewSkills = computed(() => (hasRichText(rawStore.skills) ? sanitizeRichHtml(rawStore.skills) : ''))
 
   const previewWorkList = computed<WorkEntry[]>(() =>
-    rawStore.workList.filter((entry) => hasWorkContent(entry))
+    rawStore.workList
+      .filter((entry) => hasWorkContent(entry))
+      .map((entry) => ({
+        ...entry,
+        description: sanitizeRichHtml(entry.description),
+      }))
   )
 
   const previewProjectList = computed<ProjectEntry[]>(() =>
-    rawStore.projectList.filter((entry) => hasProjectContent(entry))
+    rawStore.projectList
+      .filter((entry) => hasProjectContent(entry))
+      .map((entry) => ({
+        ...entry,
+        link: sanitizeSafeHref(entry.link),
+        introduction: sanitizeRichHtml(entry.introduction),
+        mainWork: sanitizeRichHtml(entry.mainWork),
+      }))
   )
 
   const previewAwardList = computed<AwardEntry[]>(() =>
-    rawStore.awardList.filter((entry) => awardHasContent(entry))
+    rawStore.awardList
+      .filter((entry) => awardHasContent(entry))
+      .map((entry) => ({
+        ...entry,
+        description: sanitizeRichHtml(entry.description),
+      }))
   )
 
-  const previewSelfIntro = computed(() => (hasRichText(rawStore.selfIntro) ? rawStore.selfIntro : ''))
+  const previewSelfIntro = computed(() => (hasRichText(rawStore.selfIntro) ? sanitizeRichHtml(rawStore.selfIntro) : ''))
 
   const hasBasicInfo = computed(() => {
     const basicInfo = previewBasicInfo.value
@@ -237,10 +266,14 @@ export function useResumeTemplateData() {
 
     return items
       .filter((item) => item.text.trim())
-      .map((item) => ({
-        ...item,
-        href: item.isLink && 'url' in item && typeof item.url === 'string' ? toHref(item.url) : '',
-      }))
+      .map((item) => {
+        const href = item.isLink && 'url' in item && typeof item.url === 'string' ? toHref(item.url) : ''
+        return {
+          ...item,
+          isLink: Boolean(href),
+          href,
+        }
+      })
   })
 
   const profileLinks = computed(() =>
@@ -254,6 +287,7 @@ export function useResumeTemplateData() {
         ...item,
         href: item.url ? toHref(item.url) : '',
       }))
+      .filter((item) => Boolean(item.href))
   )
 
   const customBasicMeta = computed(() =>

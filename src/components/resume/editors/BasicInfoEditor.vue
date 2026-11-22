@@ -1,4 +1,4 @@
-﻿<!-- author: jf -->
+﻿<!-- author: Bob -->
 <script setup lang="ts">
 import { useResumeStore } from '@/stores/resume'
 import { ref, reactive } from 'vue'
@@ -349,7 +349,7 @@ function removeAvatar() {
 
 .avatar-age-row {
   display: grid;
-  grid-template-columns: auto 1fr 1fr;
+  grid-template-columns: auto minmax(0, 1fr) minmax(0, 1fr);
   gap: var(--spacing-md) var(--spacing-lg);
   align-items: start;
   margin-bottom: var(--spacing-md);
@@ -359,6 +359,7 @@ function removeAvatar() {
   display: flex;
   flex-direction: column;
   gap: var(--spacing-xs);
+  min-width: 0;
 }
 
 .form-label {
@@ -368,6 +369,9 @@ function removeAvatar() {
 }
 
 .form-input {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
   padding: var(--spacing-sm) var(--spacing-md);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-md);
@@ -555,6 +559,10 @@ function removeAvatar() {
 }
 
 @media (max-width: 720px) {
+  .avatar-age-row {
+    grid-template-columns: 1fr;
+  }
+
   .custom-info-row {
     grid-template-columns: 1fr;
   }

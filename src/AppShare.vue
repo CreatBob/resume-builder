@@ -1,23 +1,52 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import SharedResumeView from '@/components/resume/SharedResumeView.vue'
-import { getSharedResumeDocument, toAbsoluteResumeShareUrl, type SharedResumeDocument } from '@/services/resumeStorageService'
+import { getCloudflareSharedResumeDocument } from '@/services/localResumeShareService'
+import { decodeOfflineSharePayload } from '@/services/offlineShareService'
+import {
+  getSharedResumeDocument,
+  toAbsoluteResumeShareUrl,
+  type SharedResumeDocument,
+} from '@/services/resumeStorageService'
+import type { ShareSource } from '@/router/appRouteResolver'
 // author: Bob
 
-const props = defineProps<{
-  shareToken: string
-}>()
+const props = withDefaults(
+  defineProps<{
+    shareSource?: ShareSource
+    shareToken?: string
+    offlinePayload?: string
+  }>(),
+  {
+    shareSource: 'backend',
+    shareToken: '',
+    offlinePayload: '',
+  },
+)
 
 const loading = ref(true)
 const errorMessage = ref('')
 const document = ref<SharedResumeDocument | null>(null)
 
-const shareUrl = computed(() => toAbsoluteResumeShareUrl(`/share/${props.shareToken}`))
+const shareUrl = computed(() => {
+  if (props.shareSource === 'offline') {
+    return window.location.href
+  }
+  return toAbsoluteResumeShareUrl(`/share/${props.shareToken}`)
+})
 
 async function loadSharedResume() {
   loading.value = true
   errorMessage.value = ''
   try {
+    if (props.shareSource === 'offline') {
+      document.value = await decodeOfflineSharePayload(props.offlinePayload)
+      return
+    }
+    if (props.shareSource === 'cloudflare') {
+      document.value = await getCloudflareSharedResumeDocument(props.shareToken)
+      return
+    }
     document.value = await getSharedResumeDocument(props.shareToken)
   } catch (error) {
     errorMessage.value = error instanceof Error ? error.message : '分享简历加载失败'
@@ -49,7 +78,12 @@ onMounted(() => {
     </div>
   </div>
 
-  <SharedResumeView v-else-if="document" :document="document" :share-url="shareUrl" />
+  <SharedResumeView
+    v-else-if="document"
+    :document="document"
+    :share-url="shareUrl"
+    :share-source="props.shareSource"
+  />
 </template>
 
 <style scoped>

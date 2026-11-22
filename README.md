@@ -69,6 +69,25 @@ npm run dev
 
 前端默认地址：`http://localhost:5173`
 
+在仓库根目录复制前端示例配置并启动前端：
+
+```bash
+copy .env.example .env
+```
+
+根目录 `.env` 包含以下前端环境变量（均已提供开箱默认值）：
+
+- `VITE_APP_FEATURE_MODE`（默认 `resume-only`）：前端主界面聚焦于简历编辑与 AI 简历优化工作台。
+- `VITE_RESUME_STORAGE_MODE`（默认 `auto`）：控制简历保存位置。本地/静态部署自动使用浏览器 `localStorage`，后端可用时可走 `/api/resumes`。
+- `VITE_AI_PROVIDER_MODE`（默认 `byok`）：控制 AI 简历优化调用通道，默认使用浏览器自带 API Key / Base URL（BYOK），设为 `backend` 时可走后端 `/api/ai/chat/stream`。
+- `VITE_AI_PROXY_PATH`（默认 `/api/ai-proxy/chat/completions`）：BYOK 开启同源边缘代理时的转发路径。
+- `VITE_CLOUDFLARE_SHARE_API`（默认 `/api/shares`）：纯前端模式下 Cloudflare KV 短链分享接口前缀。
+
+后端自己的环境变量不写在根目录 `.env`，而是分别复制：
+
+- `spring-ai-backend/.env.example`
+- `python-ai-backend/.env.example`
+
 这种模式不需要启动：
 
 - MySQL
@@ -78,11 +97,18 @@ npm run dev
 
 可直接完成：
 
-- 手动编辑简历和切换 9 套内置模板
+- 手动编辑简历和切换 9 套内置模板（含移动端编辑/预览切换与 A4 等比自适应预览）
+- 在 AI 优化配置中填写服务商 Base URL、API Key 与模型（BYOK），体验 JD 定向匹配、场景策略、缺失数据追问与 Diff 对比优化
+- 通过 Cloudflare KV 短链或免后端 URL Hash 压缩链接一键分享本地简历
 - 导出高清 PDF、压缩 PDF、Markdown、JSON
 - 导入 JSON 回填简历
 - 开发或预览新增简历模板
 - 使用 `resume-template-from-image` 生成模板后刷新页面查看
+
+### Cloudflare Pages 部署与三线并行维护
+
+- **Cloudflare Pages 纯前端部署**：构建命令 `npm run build-only`，输出目录 `dist`，设置 `VITE_APP_FEATURE_MODE=resume-only`、`VITE_RESUME_STORAGE_MODE=local`、`VITE_AI_PROVIDER_MODE=byok`；绑定 KV `RESUME_SHARES` 后即可同时开启短链分享与可选 BYOK 边缘代理。详见 [docs/architecture/cloudflare-and-share-guide.md](docs/architecture/cloudflare-and-share-guide.md)。
+- **三线并行长期维护**：仓库采用“单主干 `main` Monorepo + 目录边界与 Profile 解耦 + 按路径独立 CI”策略同时演进纯前端、Spring AI（Java）与 Python AI（FastAPI）。详见 [docs/architecture/multi-track-maintenance.md](docs/architecture/multi-track-maintenance.md) 与 [docs/architecture/capability-and-contract-matrix.md](docs/architecture/capability-and-contract-matrix.md)。
 
 ### 前后端完整联调
 
@@ -252,11 +278,18 @@ docker exec -i spring-ai-pgvector psql -U pgvector -d resume-builder < ../sql/pg
 回到仓库根目录：
 
 ```bash
+copy .env.example .env
 npm install
 npm run dev
 ```
 
 前端默认地址：`http://localhost:5173`
+
+说明：
+
+- 根目录 `.env.example` 只包含前端本地运行真正会读取的参数：`VITE_APP_FEATURE_MODE`、`VITE_RESUME_STORAGE_MODE`。
+- 如果你已经启动后端，但前端仍然只有简历编辑页，优先检查根目录 `.env` 中是否把 `VITE_APP_FEATURE_MODE` 设成了 `full`。
+- Spring AI 和 Python AI Backend 各自仍然使用自己目录下的 `.env.example`。
 
 Vite 代理配置：
 
@@ -360,6 +393,11 @@ APP_INTERVIEW_RAG_SIMILARITY_THRESHOLD=0.5
 # AI 面试 RAG 检索超时时间，避免面试流式输出被长时间阻塞。
 APP_INTERVIEW_RAG_TIMEOUT_SECONDS=3
 ```
+
+补充说明：
+
+- 根目录 `.env.example` 已提供前端本地运行最小示例，默认聚焦 `VITE_APP_FEATURE_MODE` 与 `VITE_RESUME_STORAGE_MODE` 两个前端参数。
+- `SERVER_PORT`、`APP_CORS_ALLOWED_ORIGINS`、数据库、OpenAI、Embedding、OCR、Realtime 等配置由各后端目录下自己的 `.env.example` 管理。
 
 ### OpenAI / Chat 配置
 
@@ -742,8 +780,10 @@ resume-builder/
   screenshots/                   # README 页面截图
   docs/
     harness-engineering-workflow.md
+    architecture/                # 三线并行维护、多端能力契约矩阵与 Cloudflare 部署指南
     design-system/theme-tokens.md # 前端 Career Blue Light 主题 Token 与视觉规范
     requirements/                # 历史任务需求文档
+  functions/                     # Cloudflare Pages Edge Functions（KV 分享与 BYOK 边缘代理）
   .codex/skills/                 # 项目内置 Codex Skills
   start-python-backend.bat       # Python 后端一键启动脚本
   start-python-backend.ps1       # Python 后端 PowerShell 启动脚本

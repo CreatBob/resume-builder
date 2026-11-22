@@ -1,0 +1,145 @@
+# author: Bob
+name: Multi-Track CI Checks
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: multi-track-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  detect-changes:
+    name: Detect Track Changes
+    runs-on: ubuntu-latest
+    outputs:
+      frontend: ${{ steps.filter.outputs.frontend }}
+      spring: ${{ steps.filter.outputs.spring }}
+      python: ${{ steps.filter.outputs.python }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: ${{ github.event_name == 'pull_request' && 0 || 2 }}
+
+      - name: Classify changed files
+        id: filter
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "frontend=true" >> "$GITHUB_OUTPUT"
+            echo "spring=true" >> "$GITHUB_OUTPUT"
+            echo "python=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            BASE_SHA="${{ github.event.pull_request.base.sha }}"
+          else
+            BASE_SHA="${{ github.event.before }}"
+          fi
+
+          if [ -z "$BASE_SHA" ] || [ "$BASE_SHA" = "0000000000000000000000000000000000000000" ] || ! git cat-file -e "$BASE_SHA^{commit}" 2>/dev/null; then
+            echo "frontend=true" >> "$GITHUB_OUTPUT"
+            echo "spring=true" >> "$GITHUB_OUTPUT"
+            echo "python=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          CHANGED_FILES="$(git diff --name-only "$BASE_SHA" HEAD || true)"
+          if echo "$CHANGED_FILES" | grep -qE '^(src/|functions/|public/|index\.html|package.*\.json|vite\.config\.ts|tsconfig.*\.json|eslint\.config\.ts|\.oxlintrc\.json|env\.d\.ts|wrangler\.toml|Dockerfile)'; then
+            echo "frontend=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "frontend=false" >> "$GITHUB_OUTPUT"
+          fi
+
+          if echo "$CHANGED_FILES" | grep -qE '^(spring-ai-backend/|sql/)'; then
+            echo "spring=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "spring=false" >> "$GITHUB_OUTPUT"
+          fi
+
+          if echo "$CHANGED_FILES" | grep -qE '^(python-ai-backend/|sql/)'; then
+            echo "python=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "python=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  frontend-check:
+    name: Frontend & Cloudflare Functions Check
+    needs: detect-changes
+    if: needs.detect-changes.outputs.frontend == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint and type-check
+        run: |
+          npm run lint:check
+          npm run type-check
+
+      - name: Build full-mode bundle
+        run: npm run build-only
+
+      - name: Build pure-frontend Cloudflare bundle
+        env:
+          VITE_APP_FEATURE_MODE: resume-only
+          VITE_RESUME_STORAGE_MODE: local
+          VITE_AI_PROVIDER_MODE: byok
+        run: npm run build-only
+
+  spring-ai-check:
+    name: Spring AI Backend Compile Check
+    needs: detect-changes
+    if: needs.detect-changes.outputs.spring == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+          cache: maven
+
+      - name: Compile Spring AI backend
+        run: mvn -f spring-ai-backend/pom.xml -B -q -DskipTests compile
+
+  python-ai-check:
+    name: Python AI Backend Syntax Check
+    needs: detect-changes
+    if: needs.detect-changes.outputs.python == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Compile Python app modules
+        run: python -m compileall -q python-ai-backend/app

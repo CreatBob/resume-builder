@@ -1,6 +1,12 @@
+// author: Bob
 import { postAiChatStream } from '@/api/aiApi'
-import { getModuleOutputRules, SYSTEM_PROMPT } from '@/services/prompts'
-import { buildModuleText, getModuleLabel, type AiStreamCallbacks, type ModuleData } from '@/services/aiService'
+import { SYSTEM_PROMPT } from '@/services/prompts'
+import {
+  buildOptimizeContextPrompt,
+  type AiOptimizeRequestOptions,
+  type AiStreamCallbacks,
+  type ModuleData,
+} from '@/services/aiService'
 
 function logAiOptimizeFullOutput(moduleKey: string, label: string, fullText: string): void {
   console.info(
@@ -28,27 +34,15 @@ export async function optimizeModule(
   moduleKey: string,
   moduleData: ModuleData,
   callbacks: AiStreamCallbacks,
-  signal?: AbortSignal
+  signal?: AbortSignal,
+  options: AiOptimizeRequestOptions = {},
 ): Promise<void> {
-  const moduleText = buildModuleText(moduleKey, moduleData)
-  const label = getModuleLabel(moduleKey)
+  const { label, moduleText, userMessage } = buildOptimizeContextPrompt(moduleKey, moduleData, options)
 
   if (!moduleText.trim()) {
     callbacks.onError(`“${label}”模块内容为空，请先填写后再优化。`)
     return
   }
-
-  const outputRules = getModuleOutputRules(moduleKey, {
-    projectNames: moduleData.projectList.map((p) => p.name.trim()).filter(Boolean),
-    workCompanyNames: moduleData.workList.map((w) => w.company.trim()).filter(Boolean),
-  })
-
-  const userMessage = `请优化我简历中的“${label}”模块。
-以下是当前内容：
-${moduleText}
-
-请严格遵守以下输出要求：
-${outputRules}`
 
   try {
     const response = await postAiChatStream(

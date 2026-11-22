@@ -10,6 +10,12 @@ import {
   type ResumeLayoutSettings,
   type WorkEntry,
 } from '@/stores/resume'
+import {
+  sanitizePlainText,
+  sanitizeRichHtml,
+  sanitizeSafeAvatar,
+  sanitizeSafeHref,
+} from '@/services/htmlSanitizerService'
 import type { ResumeData, SharedResumeDocument } from '@/services/resumeStorageService'
 import { createLayoutStyle, type ResumeTemplateRuntimeContext, type ResumeTemplateRuntimeStore } from '@/templates/shared/resumeTemplateRuntime'
 import { normalizeResumeTemplateKey } from '@/templates/resume'
@@ -100,41 +106,144 @@ function normalizeLayoutSettings(value: ResumeData['layoutSettings']): ResumeLay
   }
 }
 
+function normalizeLink(raw: unknown): BasicInfo['website'] {
+  const src = raw && typeof raw === 'object' ? (raw as Record<string, unknown>) : {}
+  const url = sanitizeSafeHref(src.url)
+  const text = sanitizePlainText(src.text) || url
+  return { text, url }
+}
+
+function normalizeCustomItems(raw: unknown): BasicInfo['customItems'] {
+  if (!Array.isArray(raw)) return []
+  return raw
+    .filter((item) => item && typeof item === 'object')
+    .map((item, idx) => {
+      const src = item as Record<string, unknown>
+      return {
+        id: sanitizePlainText(src.id) || `custom_${idx}`,
+        label: sanitizePlainText(src.label),
+        value: sanitizePlainText(src.value),
+      }
+    })
+}
+
+function normalizeEducationList(raw: unknown): EducationEntry[] {
+  if (!Array.isArray(raw)) return []
+  return raw
+    .filter((item) => item && typeof item === 'object')
+    .map((item, idx) => {
+      const src = item as Record<string, unknown>
+      return {
+        id: sanitizePlainText(src.id) || `edu_${idx}`,
+        school: sanitizePlainText(src.school),
+        college: sanitizePlainText(src.college),
+        major: sanitizePlainText(src.major),
+        degree: sanitizePlainText(src.degree),
+        startDate: sanitizePlainText(src.startDate),
+        endDate: sanitizePlainText(src.endDate),
+        gpa: sanitizePlainText(src.gpa),
+        description: sanitizeRichHtml(src.description),
+        type: sanitizePlainText(src.type),
+        location: sanitizePlainText(src.location),
+      }
+    })
+}
+
+function normalizeWorkList(raw: unknown): WorkEntry[] {
+  if (!Array.isArray(raw)) return []
+  return raw
+    .filter((item) => item && typeof item === 'object')
+    .map((item, idx) => {
+      const src = item as Record<string, unknown>
+      return {
+        id: sanitizePlainText(src.id) || `work_${idx}`,
+        company: sanitizePlainText(src.company),
+        department: sanitizePlainText(src.department),
+        position: sanitizePlainText(src.position),
+        startDate: sanitizePlainText(src.startDate),
+        endDate: sanitizePlainText(src.endDate),
+        location: sanitizePlainText(src.location),
+        description: sanitizeRichHtml(src.description),
+      }
+    })
+}
+
+function normalizeProjectList(raw: unknown): ProjectEntry[] {
+  if (!Array.isArray(raw)) return []
+  return raw
+    .filter((item) => item && typeof item === 'object')
+    .map((item, idx) => {
+      const src = item as Record<string, unknown>
+      return {
+        id: sanitizePlainText(src.id) || `proj_${idx}`,
+        name: sanitizePlainText(src.name),
+        role: sanitizePlainText(src.role),
+        startDate: sanitizePlainText(src.startDate),
+        endDate: sanitizePlainText(src.endDate),
+        link: sanitizeSafeHref(src.link),
+        introduction: sanitizeRichHtml(src.introduction),
+        mainWork: sanitizeRichHtml(src.mainWork),
+      }
+    })
+}
+
+function normalizeAwardList(raw: unknown): AwardEntry[] {
+  if (!Array.isArray(raw)) return []
+  return raw
+    .filter((item) => item && typeof item === 'object')
+    .map((item, idx) => {
+      const src = item as Record<string, unknown>
+      return {
+        id: sanitizePlainText(src.id) || `award_${idx}`,
+        name: sanitizePlainText(src.name),
+        date: sanitizePlainText(src.date),
+        description: sanitizeRichHtml(src.description),
+      }
+    })
+}
+
 export function createResumeTemplateRuntimeFromContent(content: ResumeData): ResumeTemplateRuntimeContext {
-  const modules = normalizeModules(content)
-  const layoutSettings = normalizeLayoutSettings(content.layoutSettings)
+  const safeContent = content && typeof content === 'object' ? content : ({} as ResumeData)
+  const modules = normalizeModules(safeContent)
+  const layoutSettings = normalizeLayoutSettings(safeContent.layoutSettings)
+  const rawBasic =
+    safeContent.basicInfo && typeof safeContent.basicInfo === 'object'
+      ? (safeContent.basicInfo as unknown as Record<string, unknown>)
+      : {}
+  const emptyBasic = createEmptyBasicInfo()
   const basicInfo = reactive<BasicInfo>({
-    ...createEmptyBasicInfo(),
-    ...(content.basicInfo && typeof content.basicInfo === 'object' ? (content.basicInfo as Partial<BasicInfo>) : {}),
-    website:
-      content.basicInfo && typeof content.basicInfo === 'object' && 'website' in content.basicInfo && content.basicInfo.website
-        ? (content.basicInfo.website as BasicInfo['website'])
-        : { text: '', url: '' },
-    github:
-      content.basicInfo && typeof content.basicInfo === 'object' && 'github' in content.basicInfo && content.basicInfo.github
-        ? (content.basicInfo.github as BasicInfo['github'])
-        : { text: '', url: '' },
-    blog:
-      content.basicInfo && typeof content.basicInfo === 'object' && 'blog' in content.basicInfo && content.basicInfo.blog
-        ? (content.basicInfo.blog as BasicInfo['blog'])
-        : { text: '', url: '' },
-    customItems:
-      content.basicInfo && typeof content.basicInfo === 'object' && Array.isArray(content.basicInfo.customItems)
-        ? (content.basicInfo.customItems as BasicInfo['customItems'])
-        : [],
+    name: sanitizePlainText(rawBasic.name) || emptyBasic.name,
+    phone: sanitizePlainText(rawBasic.phone),
+    email: sanitizePlainText(rawBasic.email),
+    age: sanitizePlainText(rawBasic.age),
+    gender: sanitizePlainText(rawBasic.gender),
+    location: sanitizePlainText(rawBasic.location),
+    jobTitle: sanitizePlainText(rawBasic.jobTitle),
+    educationLevel: sanitizePlainText(rawBasic.educationLevel),
+    avatar: sanitizeSafeAvatar(rawBasic.avatar),
+    workYears: sanitizePlainText(rawBasic.workYears),
+    currentStatus: sanitizePlainText(rawBasic.currentStatus),
+    expectedLocation: sanitizePlainText(rawBasic.expectedLocation),
+    expectedSalary: sanitizePlainText(rawBasic.expectedSalary),
+    website: normalizeLink(rawBasic.website),
+    wechat: sanitizePlainText(rawBasic.wechat),
+    currentCity: sanitizePlainText(rawBasic.currentCity),
+    github: normalizeLink(rawBasic.github),
+    blog: normalizeLink(rawBasic.blog),
+    customItems: normalizeCustomItems(rawBasic.customItems),
   })
 
   const store = reactive<ResumeTemplateRuntimeStore>({
     modules,
-    selectedTemplateKey: normalizeResumeTemplateKey(content.selectedTemplateKey ?? content.selectedTemplateId),
+    selectedTemplateKey: normalizeResumeTemplateKey(safeContent.selectedTemplateKey ?? safeContent.selectedTemplateId),
     layoutSettings,
     basicInfo,
-    educationList: Array.isArray(content.educationList) ? (content.educationList as EducationEntry[]) : [],
-    skills: typeof content.skills === 'string' ? content.skills : '',
-    workList: Array.isArray(content.workList) ? (content.workList as WorkEntry[]) : [],
-    projectList: Array.isArray(content.projectList) ? (content.projectList as ProjectEntry[]) : [],
-    awardList: Array.isArray(content.awardList) ? (content.awardList as AwardEntry[]) : [],
-    selfIntro: typeof content.selfIntro === 'string' ? content.selfIntro : '',
+    educationList: normalizeEducationList(safeContent.educationList),
+    skills: sanitizeRichHtml(safeContent.skills),
+    workList: normalizeWorkList(safeContent.workList),
+    projectList: normalizeProjectList(safeContent.projectList),
+    awardList: normalizeAwardList(safeContent.awardList),
+    selfIntro: sanitizeRichHtml(safeContent.selfIntro),
     isModuleVisible: (key: string) => modules.find((item) => item.key === key)?.visible ?? false,
   })
 
