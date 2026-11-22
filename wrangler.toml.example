@@ -1,0 +1,12 @@
+# author: Bob
+# Cloudflare Pages 本地预览配置模板（请勿将未配置绑定的 wrangler.toml 直接提交至仓库根目录，否则会覆盖 Cloudflare Pages 控制台的 KV 与环境变量绑定）
+# 本地联调时可复制本文件为 wrangler.toml（已加入 .gitignore），生产环境请在 Cloudflare Pages 控制台「Settings -> Functions -> KV namespace bindings」中绑定变量 RESUME_SHARES。
+
+name = "resume-builder"
+compatibility_date = "2026-05-01"
+pages_build_output_dir = "dist"
+
+# 本地 wrangler 联调时可取消下方注释并填写本地预览用途的绑定：
+# [[kv_namespaces]]
+# binding = "RESUME_SHARES"
+# id = "<your-kv-namespace-id>"

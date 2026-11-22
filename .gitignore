@@ -60,3 +60,5 @@ docs/requirements/
 
 # Temporary local artifacts
 .tmp-*
+wrangler.toml
+.wrangler/

@@ -23,7 +23,7 @@
    - KV namespace：选择刚创建的 `resume-builder-shares`
 3. 同仓库 `functions/api/shares/[[path]].ts` 与 `functions/api/ai-proxy/chat/completions.ts` 会由 Cloudflare Pages 自动部署，无需额外配置服务器。
 
-> 本地使用 Wrangler 联调 Edge Functions：`npm run build-only && npx wrangler pages dev dist --kv RESUME_SHARES`。真实 KV ID 请在 Cloudflare 控制台绑定，勿把个人 Account ID / KV ID 硬编码提交到 `wrangler.toml`。
+> 本地使用 Wrangler 联调 Edge Functions：`npm run build-only && npx wrangler pages dev dist --kv RESUME_SHARES`（或将 `wrangler.toml.example` 复制为本地 `wrangler.toml`）。真实 KV ID 请在 Cloudflare 控制台绑定，勿把 `wrangler.toml` 提交到仓库根目录，以免覆盖控制台的环境变量与 KV 绑定。
 
 ---
 
