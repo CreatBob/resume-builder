@@ -5,6 +5,10 @@ import { DEFAULT_RESUME_AVATAR } from '@/config/defaultAvatar'
 import { getResumeStorageMode } from '@/config/resumeStorageMode'
 import { cleanupLocalCloudflareShareForDeletedResume } from '@/services/localResumeShareService'
 import {
+  buildImportCreateResumePayload,
+  type ImportResumeContentParams,
+} from '@/services/resumeImportService'
+import {
   enableResumeShare,
   ResumeStorageConflictError,
   createResumeStorageService,
@@ -155,6 +159,15 @@ function createEmptyBasicLink(): BasicLink {
   return {
     text: '',
     url: '',
+  }
+}
+
+function createEmptyBasicInfo(): BasicInfo {
+  return {
+    name: '', phone: '', email: '', age: '', gender: '', location: '', jobTitle: '', educationLevel: '',
+    avatar: '', workYears: '', currentStatus: '', expectedLocation: '', expectedSalary: '',
+    website: createEmptyBasicLink(), wechat: '', currentCity: '', github: createEmptyBasicLink(),
+    blog: createEmptyBasicLink(), customItems: [],
   }
 }
 
@@ -618,7 +631,42 @@ export const useResumeStore = defineStore('resume', () => {
     await saveToStorage('manual')
   }
 
-  function applyResumeData(data: ResumeData) {
+  async function importResumeContent(params: ImportResumeContentParams): Promise<ResumeDocument | null> {
+    const { content, title, mode, preserveTemplateIfMissing, preserveLayoutIfMissing } = params
+    if (mode === 'create') {
+      if (!(await saveToStorage('manual'))) return null
+      const nextContent = buildImportCreateResumePayload({
+        content,
+        currentTemplateKey: selectedTemplateKey.value,
+        currentLayoutSettings: { ...layoutSettings },
+        defaultLayoutSettings: { ...DEFAULT_RESUME_LAYOUT_SETTINGS },
+        preserveTemplateIfMissing,
+        preserveLayoutIfMissing,
+      })
+      const created = await resumeStorage.create({ title: title?.trim() || '导入的简历', content: nextContent })
+      upsertResumeDocument(created)
+      await switchResume(created.id, false)
+      return created
+    }
+    try {
+      isApplyingDocument = true
+      applyResumeData(content, { preserveTemplateIfMissing, preserveLayoutIfMissing })
+    } finally {
+      isApplyingDocument = false
+    }
+    if (!(await saveToStorage('manual'))) return null
+    if (title?.trim() && title.trim() !== currentResume.value?.title) await renameCurrentResume(title.trim())
+    return currentResume.value
+  }
+
+  function ensureEntryIds<T extends { id?: string }>(items: T[]): T[] {
+    return items.map((item) => ({ ...item, id: item.id || genId() }))
+  }
+
+  function applyResumeData(
+    data: ResumeData,
+    options?: { preserveTemplateIfMissing?: boolean; preserveLayoutIfMissing?: boolean },
+  ) {
     try {
       if (data.modules) {
         const byKey = new Map<string, ModuleConfig>()
@@ -649,30 +697,26 @@ export const useResumeStore = defineStore('resume', () => {
 
         modules.splice(0, modules.length, ...nextModules)
       }
-      selectedTemplateKey.value = normalizeResumeTemplateKey(data.selectedTemplateKey ?? data.selectedTemplateId)
-      Object.assign(layoutSettings, normalizeLayoutSettings(data.layoutSettings))
+      if (!options?.preserveTemplateIfMissing || data.selectedTemplateKey || data.selectedTemplateId) {
+        selectedTemplateKey.value = normalizeResumeTemplateKey(data.selectedTemplateKey ?? data.selectedTemplateId)
+      }
+      if (!options?.preserveLayoutIfMissing || data.layoutSettings) {
+        Object.assign(layoutSettings, normalizeLayoutSettings(data.layoutSettings))
+      }
       if (data.basicInfo) {
         const incomingBasicInfo = data.basicInfo as Partial<BasicInfo> & Record<string, unknown>
-        Object.assign(basicInfo, incomingBasicInfo, {
+        Object.assign(basicInfo, createEmptyBasicInfo(), incomingBasicInfo, {
           website: normalizeBasicLink(incomingBasicInfo.website),
           github: normalizeBasicLink(incomingBasicInfo.github),
           blog: normalizeBasicLink(incomingBasicInfo.blog),
           customItems: normalizeCustomBasicItems(incomingBasicInfo.customItems),
         })
       }
-      if (Array.isArray(data.educationList)) {
-        educationList.splice(0, educationList.length, ...(data.educationList as EducationEntry[]))
-      }
+      if (Array.isArray(data.educationList)) educationList.splice(0, educationList.length, ...ensureEntryIds(data.educationList as EducationEntry[]))
       if (data.skills !== undefined) skills.value = data.skills
-      if (Array.isArray(data.workList)) {
-        workList.splice(0, workList.length, ...(data.workList as WorkEntry[]))
-      }
-      if (Array.isArray(data.projectList)) {
-        projectList.splice(0, projectList.length, ...(data.projectList as ProjectEntry[]))
-      }
-      if (Array.isArray(data.awardList)) {
-        awardList.splice(0, awardList.length, ...(data.awardList as AwardEntry[]))
-      }
+      if (Array.isArray(data.workList)) workList.splice(0, workList.length, ...ensureEntryIds(data.workList as WorkEntry[]))
+      if (Array.isArray(data.projectList)) projectList.splice(0, projectList.length, ...ensureEntryIds(data.projectList as ProjectEntry[]))
+      if (Array.isArray(data.awardList)) awardList.splice(0, awardList.length, ...ensureEntryIds(data.awardList as AwardEntry[]))
       if (data.selfIntro !== undefined) selfIntro.value = data.selfIntro
     } catch (e) {
       console.warn('Failed to load resume data', e)
@@ -907,7 +951,9 @@ export const useResumeStore = defineStore('resume', () => {
     addCustomBasicInfoItem,
     removeCustomBasicInfoItem,
     exportResumeData,
+    snapshotResumeData,
     importResumeData,
+    importResumeContent,
     saveToStorage,
     initializeWorkspace,
     createResume,

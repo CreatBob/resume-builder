@@ -6,10 +6,12 @@ import { getModuleIconPaths, MODULE_ICON_VIEWBOX } from '@/constants/moduleIcons
 
 const emit = defineEmits<{
   (event: 'open-ai'): void
+  (event: 'open-ai-prompt'): void
 }>()
 
 const store = useResumeStore()
 const moduleMenuOpen = ref(false)
+const aiMenuOpen = ref(false)
 const moduleMenuRef = ref<HTMLElement | null>(null)
 const draggingModuleKey = ref<string | null>(null)
 const dragOverModuleKey = ref<string | null>(null)
@@ -18,7 +20,25 @@ const visibleCount = computed(() => store.modules.filter((m) => m.visible).lengt
 const isDefaultOrder = computed(() => store.isDefaultModuleOrder())
 
 function toggleModuleMenu() {
-  moduleMenuOpen.value = !moduleMenuOpen.value
+  const next = !moduleMenuOpen.value
+  aiMenuOpen.value = false
+  moduleMenuOpen.value = next
+}
+
+function toggleAiMenu() {
+  const next = !aiMenuOpen.value
+  moduleMenuOpen.value = false
+  aiMenuOpen.value = next
+}
+
+function handleSelectAiOptimize() {
+  aiMenuOpen.value = false
+  emit('open-ai')
+}
+
+function handleSelectAiPrompt() {
+  aiMenuOpen.value = false
+  emit('open-ai-prompt')
 }
 
 function handleDocumentPointerDown(event: MouseEvent) {
@@ -26,6 +46,14 @@ function handleDocumentPointerDown(event: MouseEvent) {
   if (!target || !moduleMenuRef.value) return
   if (!moduleMenuRef.value.contains(target)) {
     moduleMenuOpen.value = false
+    aiMenuOpen.value = false
+  }
+}
+
+function handleKeydown(event: KeyboardEvent) {
+  if (event.key === 'Escape') {
+    moduleMenuOpen.value = false
+    aiMenuOpen.value = false
   }
 }
 
@@ -88,10 +116,12 @@ function handleSwitchDragEnd() {
 
 onMounted(() => {
   document.addEventListener('mousedown', handleDocumentPointerDown)
+  window.addEventListener('keydown', handleKeydown)
 })
 
 onUnmounted(() => {
   document.removeEventListener('mousedown', handleDocumentPointerDown)
+  window.removeEventListener('keydown', handleKeydown)
 })
 </script>
 
@@ -175,15 +205,29 @@ onUnmounted(() => {
           </ul>
         </div>
       </div>
-      <button
-        class="floating-tool-btn ai-tool-btn"
-        type="button"
-        aria-label="AI优化建议"
-        title="AI优化建议"
-        @click="emit('open-ai')"
-      >
-        <span class="ai-tool-text">AI</span>
-      </button>
+      <div class="ai-menu-anchor">
+        <button
+          class="floating-tool-btn ai-tool-btn"
+          type="button"
+          :aria-expanded="aiMenuOpen"
+          aria-haspopup="menu"
+          aria-label="AI 助手菜单"
+          title="AI 助手"
+          @click="toggleAiMenu"
+        >
+          <span class="ai-tool-text">AI</span>
+        </button>
+        <div v-if="aiMenuOpen" class="ai-menu-popover" role="menu" aria-label="AI 功能入口">
+          <button class="ai-menu-item" type="button" role="menuitem" @click="handleSelectAiOptimize">
+            <span class="ai-menu-item-title">AI 优化建议</span>
+            <span class="ai-menu-item-desc">逐模块润色、量化与改写</span>
+          </button>
+          <button class="ai-menu-item" type="button" role="menuitem" @click="handleSelectAiPrompt">
+            <span class="ai-menu-item-title">AI 写简历提示词</span>
+            <span class="ai-menu-item-desc">复制 JSON 结构与规范给外部 AI</span>
+          </button>
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -233,8 +277,60 @@ onUnmounted(() => {
   background: var(--color-brand-subtle);
 }
 
-.module-switch-anchor {
+.module-switch-anchor,
+.ai-menu-anchor {
   position: relative;
+}
+
+.ai-menu-popover {
+  position: absolute;
+  bottom: 0;
+  right: calc(100% + 12px);
+  width: 224px;
+  max-width: min(224px, calc(100vw - 96px));
+  padding: 6px;
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-lg);
+  background: var(--color-bg-panel);
+  box-shadow: var(--shadow-lg);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  z-index: 25;
+}
+
+.ai-menu-item {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  background: transparent;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  cursor: pointer;
+}
+
+.ai-menu-item:hover {
+  border-color: var(--color-brand-muted);
+  background: var(--color-brand-subtle);
+}
+
+.ai-menu-item-title {
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+
+.ai-menu-item:hover .ai-menu-item-title {
+  color: var(--color-brand-text);
+}
+
+.ai-menu-item-desc {
+  font-size: 11px;
+  color: var(--color-text-tertiary);
+  line-height: 1.35;
 }
 
 .ai-tool-btn {

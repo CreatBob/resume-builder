@@ -33,13 +33,18 @@ function handleOpenPreview() {
   emit('update:modelValue', false)
   emit('switch-mobile-preview')
 }
+
+function handleOpenImport() {
+  emit('update:modelValue', false)
+  emit('import-json')
+}
 </script>
 
 <template>
   <MobileBottomSheet
     :model-value="props.modelValue"
     title="简历与搜索"
-    subtitle="管理多份简历、搜索模块或导入 JSON"
+    subtitle="管理多份简历、搜索模块或导入简历"
     @update:model-value="emit('update:modelValue', $event)"
   >
     <div class="mobile-sheet-stack">
@@ -99,8 +104,8 @@ function handleOpenPreview() {
         >
           删除当前
         </button>
-        <button class="btn-resume-action" type="button" @click="emit('import-json')">
-          导入 JSON
+        <button class="btn-resume-action" type="button" @click="handleOpenImport">
+          导入
         </button>
       </div>
 

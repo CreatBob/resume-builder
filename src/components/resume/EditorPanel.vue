@@ -13,6 +13,8 @@ import EditorFloatingTools from './EditorFloatingTools.vue'
 import EditorModuleList from './EditorModuleList.vue'
 import MobileResumeManageSheet from './MobileResumeManageSheet.vue'
 import MobileModuleManagerSheet from './MobileModuleManagerSheet.vue'
+import ResumeAiPromptDialog from './ResumeAiPromptDialog.vue'
+import ResumeImportDialog, { type ImportDialogTab } from './ResumeImportDialog.vue'
 import { awardHasContent } from '@/utils/awardContent'
 // author: Bob
 
@@ -25,9 +27,13 @@ const searchValue = ref('')
 const showAiPanel = ref(false)
 const mobileManageOpen = ref(false)
 const mobileModulesOpen = ref(false)
-const jsonImportInputRef = ref<HTMLInputElement | null>(null)
+const promptDialogOpen = ref(false)
+const importDialogOpen = ref(false)
+const importDialogTab = ref<ImportDialogTab>('text')
+const importSuccessTip = ref('')
 const nowTick = ref(Date.now())
 const renameValue = ref('')
+let importTipTimer: ReturnType<typeof setTimeout> | null = null
 
 function handleAiClick() {
   showAiPanel.value = true
@@ -172,22 +178,26 @@ async function handleDeleteResume() {
   renameValue.value = store.currentResume?.title ?? ''
 }
 
-function triggerJsonImport() {
-  jsonImportInputRef.value?.click()
+function openPromptDialog() {
+  promptDialogOpen.value = true
 }
 
-async function handleImportJson(event: Event) {
-  const input = event.target as HTMLInputElement
-  const file = input.files?.[0]
-  if (!file) return
+function openImportDialog(tab: ImportDialogTab = 'text') {
+  importDialogTab.value = tab
+  importDialogOpen.value = true
+}
 
-  try {
-    const raw = await file.text()
-    input.value = ''
-    await store.importResumeData(raw)
-  } catch (error) {
-    store.workspaceError = error instanceof Error ? `导入 JSON 失败：${error.message}` : '导入 JSON 失败'
-  }
+function handleImported(payload: { mode: 'create' | 'overwrite'; title: string }) {
+  renameValue.value = store.currentResume?.title ?? payload.title
+  if (importTipTimer) clearTimeout(importTipTimer)
+  importSuccessTip.value =
+    payload.mode === 'create'
+      ? `已新建并切换到简历「${payload.title}」`
+      : `已覆盖更新当前简历「${payload.title}」`
+  importTipTimer = setTimeout(() => {
+    importSuccessTip.value = ''
+    importTipTimer = null
+  }, 3200)
 }
 
 const isAutoSavePending = computed(() => store.nextAutoSaveAt !== null)
@@ -241,12 +251,16 @@ onUnmounted(() => {
     clearInterval(autoSaveTicker)
     autoSaveTicker = null
   }
+  if (importTipTimer) {
+    clearTimeout(importTipTimer)
+    importTipTimer = null
+  }
 })
 </script>
 
 <template>
   <main class="editor-panel">
-    <EditorFloatingTools @open-ai="handleAiClick" />
+    <EditorFloatingTools @open-ai="handleAiClick" @open-ai-prompt="openPromptDialog" />
 
     <section class="info-editor">
       <div class="mobile-editor-header">
@@ -298,7 +312,7 @@ onUnmounted(() => {
 
         <div class="editor-topbar-right">
           <div class="editor-header-actions">
-            <button class="btn-import" type="button" @click="triggerJsonImport">导入 JSON</button>
+            <button class="btn-import" type="button" @click="openImportDialog('text')">导入</button>
           </div>
         </div>
       </div>
@@ -364,14 +378,7 @@ onUnmounted(() => {
       </div>
 
       <p v-if="store.workspaceError" class="resume-storage-error">{{ store.workspaceError }}</p>
-
-      <input
-        ref="jsonImportInputRef"
-        type="file"
-        accept=".json,application/json"
-        style="display: none"
-        @change="handleImportJson"
-      />
+      <p v-if="importSuccessTip" class="resume-import-success" role="status">{{ importSuccessTip }}</p>
       <p class="module-hint">模块顺序与模块开关一致，点击右侧可展开/收起</p>
 
       <EditorModuleList
@@ -385,6 +392,19 @@ onUnmounted(() => {
     <AiOptimizePanel
       v-if="showAiPanel"
       @close="showAiPanel = false"
+      @open-prompt-helper="openPromptDialog"
+    />
+
+    <ResumeAiPromptDialog
+      v-model="promptDialogOpen"
+      @open-import="openImportDialog('text')"
+    />
+
+    <ResumeImportDialog
+      v-model="importDialogOpen"
+      :initial-tab="importDialogTab"
+      @imported="handleImported"
+      @open-prompt="openPromptDialog"
     />
 
     <MobileResumeManageSheet
@@ -398,7 +418,7 @@ onUnmounted(() => {
       @rename-resume="handleRenameResume"
       @create-resume="handleCreateResume"
       @delete-resume="handleDeleteResume"
-      @import-json="triggerJsonImport"
+      @import-json="openImportDialog('text')"
       @switch-mobile-preview="emit('switch-mobile-preview')"
     />
 
@@ -444,14 +464,17 @@ onUnmounted(() => {
 
 .editor-topbar {
   display: flex;
-  align-items: stretch;
+  align-items: center;
   justify-content: space-between;
-  gap: var(--space-4);
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-3);
+  padding-bottom: var(--space-3);
+  border-bottom: 1px solid var(--color-border-subtle);
 }
 
 .editor-topbar-left {
   min-width: 0;
-  flex: 0 0 auto;
+  flex: 1 1 auto;
   display: flex;
   align-items: center;
 }
@@ -473,22 +496,20 @@ onUnmounted(() => {
 .editor-status-strip {
   display: flex;
   align-items: center;
-  gap: var(--space-2);
+  gap: 6px;
   flex-wrap: wrap;
-  padding-bottom: var(--space-3);
-  border-bottom: 1px solid var(--color-border-subtle);
 }
 
 .status-pill {
-  min-height: 28px;
-  padding: 0 var(--space-3);
+  min-height: 26px;
+  padding: 0 10px;
   border-radius: var(--radius-full);
   border: 1px solid var(--color-border-subtle);
   background: var(--color-bg-subtle);
   color: var(--color-text-secondary);
   display: inline-flex;
   align-items: center;
-  gap: var(--space-2);
+  gap: 6px;
   font-size: var(--font-size-xs);
   font-weight: 600;
   white-space: nowrap;
@@ -496,7 +517,7 @@ onUnmounted(() => {
 
 .status-pill strong {
   color: var(--color-text-primary);
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-xs);
   font-weight: 700;
 }
 
@@ -505,7 +526,7 @@ onUnmounted(() => {
 }
 
 .status-save-pill {
-  min-width: 156px;
+  min-width: 0;
   max-width: 100%;
   color: var(--color-brand-text);
   background: var(--color-brand-subtle);
@@ -676,15 +697,25 @@ onUnmounted(() => {
   font-weight: 600;
 }
 
+.resume-import-success {
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
+  background: var(--color-success-subtle);
+  color: var(--color-success);
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+}
+
 .btn-import {
-  height: 36px;
-  padding: 0 var(--space-4);
+  height: 30px;
+  padding: 0 var(--space-3);
   border-radius: var(--radius-md);
   border: 1px solid var(--color-border-default);
   background: var(--color-bg-panel);
   color: var(--color-text-secondary);
   font-size: var(--font-size-xs);
   font-weight: 600;
+  white-space: nowrap;
   cursor: pointer;
   transition: border-color 0.18s ease, color 0.18s ease, background-color 0.18s ease;
 }

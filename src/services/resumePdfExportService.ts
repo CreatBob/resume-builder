@@ -202,3 +202,32 @@ export async function exportResumePdf(options: ExportResumePdfOptions) {
     exportHost.remove()
   }
 }
+
+function sanitizeFilenameSegment(raw?: string): string {
+  if (!raw) return ''
+  return raw
+    .trim()
+    .replace(/[\\/:*?"<>|\r\n]+/g, '-')
+    .replace(/^[.\s-]+|[.\s-]+$/g, '')
+}
+
+/**
+ * 组合“姓名-简历名称”格式的 PDF 导出文件名，自动清理非法文件名字符并避免姓名重复拼接。
+ */
+export function buildResumePdfFilename(name?: string, resumeTitle?: string): string {
+  const cleanName = sanitizeFilenameSegment(name)
+  const cleanTitle = sanitizeFilenameSegment(resumeTitle)
+
+  if (cleanName && cleanTitle) {
+    if (cleanTitle === cleanName || cleanTitle.startsWith(cleanName)) {
+      return `${cleanTitle}.pdf`
+    }
+    return `${cleanName}-${cleanTitle}.pdf`
+  }
+
+  if (cleanName || cleanTitle) {
+    return `${cleanName || cleanTitle}.pdf`
+  }
+
+  return '简历.pdf'
+}

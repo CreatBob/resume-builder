@@ -14,7 +14,14 @@ import {
   type ResumeTemplateKey,
 } from '@/templates/resume'
 import { generateResumeMarkdown, downloadMarkdown } from '@/services/exportMarkdown'
-import { exportResumePdf, type ExportQualityMode } from '@/services/resumePdfExportService'
+import { copyTextToClipboard } from '@/services/clipboardService'
+import { encodeOfflineSharePayload } from '@/services/offlineShareService'
+import { buildPortableResumeJsonText } from '@/services/resumeImportService'
+import {
+  buildResumePdfFilename,
+  exportResumePdf,
+  type ExportQualityMode,
+} from '@/services/resumePdfExportService'
 
 const store = useResumeStore()
 const scaledPreviewRef = ref<{ getPaperElement: () => HTMLElement | null; recalculate: () => void } | null>(null)
@@ -35,6 +42,9 @@ const templatePickerOpen = ref(false)
 const shareDialogOpen = ref(false)
 const mobileTypographyOpen = ref(false)
 const mobileExportOpen = ref(false)
+const exportFeedback = ref('')
+const exportFeedbackType = ref<'success' | 'warning' | 'error' | ''>('')
+let exportFeedbackTimer: ReturnType<typeof setTimeout> | null = null
 
 const fallbackTemplate: ResumeTemplateDefinition = getResumeTemplateByKey('default')
 const currentTemplate = computed<ResumeTemplateDefinition>(
@@ -127,6 +137,10 @@ onMounted(() => {
 
 onUnmounted(() => {
   document.removeEventListener('mousedown', handleDocumentPointerDown)
+  if (exportFeedbackTimer) {
+    clearTimeout(exportFeedbackTimer)
+    exportFeedbackTimer = null
+  }
 })
 
 function handleExportTriggerClick() {
@@ -178,6 +192,57 @@ function handleExportMarkdown() {
   downloadMarkdown(`${name}_简历.md`, md)
 }
 
+function showExportFeedback(message: string, type: 'success' | 'warning' | 'error') {
+  if (exportFeedbackTimer) clearTimeout(exportFeedbackTimer)
+  exportFeedback.value = message
+  exportFeedbackType.value = type
+  exportFeedbackTimer = setTimeout(() => {
+    exportFeedback.value = ''
+    exportFeedbackType.value = ''
+    exportFeedbackTimer = null
+  }, 3600)
+}
+
+async function handleCopyJsonText() {
+  exportMenuOpen.value = false
+  mobileExportOpen.value = false
+  try {
+    const { jsonText, avatarStripped } = buildPortableResumeJsonText(store.snapshotResumeData())
+    await copyTextToClipboard(jsonText)
+    showExportFeedback(
+      avatarStripped
+        ? 'JSON 文本已复制到剪贴板（已自动省略本地大图头像，可直接发送或粘贴导入）。'
+        : 'JSON 文本已复制到剪贴板，可直接发送或粘贴导入。',
+      'success',
+    )
+  } catch (err) {
+    showExportFeedback(err instanceof Error ? err.message : '复制 JSON 文本失败', 'error')
+  }
+}
+
+async function handleExportImportableLongLink() {
+  exportMenuOpen.value = false
+  mobileExportOpen.value = false
+  try {
+    const snap = store.snapshotCurrentResumeForShare()
+    const result = await encodeOfflineSharePayload(
+      {
+        title: snap.title,
+        content: snap.content,
+        updatedAt: snap.updatedAt,
+      },
+      { stripLargeAvatar: true },
+    )
+    await copyTextToClipboard(result.shareUrl)
+    const hints = [`可导入长链已复制（${result.urlLength} 字符）`]
+    if (result.avatarStripped) hints.push('已省略本地大图头像')
+    if (result.isLongUrl) hints.push('链接偏长，建议发文件或复制 JSON 文本防截断')
+    showExportFeedback(`${hints.join(' · ')}，对方可打开查看或粘贴导入继续编辑。`, result.isLongUrl ? 'warning' : 'success')
+  } catch (err) {
+    showExportFeedback(err instanceof Error ? err.message : '生成可导入长链失败', 'error')
+  }
+}
+
 function handleExportJson() {
   exportMenuOpen.value = false
   mobileExportOpen.value = false
@@ -207,7 +272,7 @@ async function exportPDF(mode: ExportQualityMode) {
   try {
     await exportResumePdf({
       sourceNode: paperEl,
-      filename: `${store.basicInfo.name || '简历'}_resume.pdf`,
+      filename: buildResumePdfFilename(store.basicInfo.name, store.currentResume?.title),
       mode,
       onProgress: setExportProgress,
     })
@@ -309,6 +374,8 @@ defineExpose({
             <button class="export-menu-item" type="button" @click="exportPDF('compressed')">导出压缩 PDF</button>
             <button class="export-menu-item" type="button" @click="handleExportMarkdown">导出 Markdown</button>
             <button class="export-menu-item" type="button" @click="handleExportJson">导出 JSON 进度</button>
+            <button class="export-menu-item" type="button" @click="handleCopyJsonText">复制 JSON 文本</button>
+            <button class="export-menu-item" type="button" @click="handleExportImportableLongLink">导出可导入长链</button>
           </div>
         </div>
 
@@ -337,6 +404,10 @@ defineExpose({
           分享
         </button>
       </div>
+    </div>
+
+    <div v-if="exportFeedback" class="export-feedback" :class="exportFeedbackType" role="status">
+      {{ exportFeedback }}
     </div>
 
     <div v-if="exporting" class="export-progress">
@@ -404,6 +475,8 @@ defineExpose({
         <button class="mobile-export-item" type="button" @click="exportPDF('compressed')">导出压缩 PDF（体积更小）</button>
         <button class="mobile-export-item" type="button" @click="handleExportMarkdown">导出 Markdown 文本</button>
         <button class="mobile-export-item" type="button" @click="handleExportJson">导出 JSON 数据备份</button>
+        <button class="mobile-export-item" type="button" @click="handleCopyJsonText">复制 JSON 文本（支持直接粘贴导入）</button>
+        <button class="mobile-export-item" type="button" @click="handleExportImportableLongLink">导出可导入长链（支持二次编辑）</button>
       </div>
     </MobileBottomSheet>
   </aside>
@@ -603,7 +676,7 @@ defineExpose({
 }
 
 .export-menu {
-  min-width: 136px;
+  min-width: 152px;
   padding: 4px;
 }
 
@@ -654,6 +727,28 @@ defineExpose({
   gap: 8px;
   flex-shrink: 0;
   position: relative;
+}
+
+.export-feedback {
+  padding: 8px 10px;
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+}
+
+.export-feedback.success {
+  background: var(--color-success-subtle);
+  color: var(--color-success);
+}
+
+.export-feedback.warning {
+  background: var(--color-warning-subtle);
+  color: var(--color-warning);
+}
+
+.export-feedback.error {
+  background: var(--color-danger-subtle);
+  color: var(--color-danger);
 }
 
 .export-progress {

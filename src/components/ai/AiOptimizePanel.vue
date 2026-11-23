@@ -28,6 +28,7 @@ import { AI_OPTIMIZE_SCENARIOS, type AiOptimizeScenario } from '@/services/promp
 
 const emit = defineEmits<{
   (e: 'close'): void
+  (e: 'open-prompt-helper'): void
 }>()
 
 const resumeStore = useResumeStore()
@@ -266,6 +267,11 @@ function handleClose() {
   emit('close')
 }
 
+function handleOpenPromptHelper() {
+  handleClose()
+  emit('open-prompt-helper')
+}
+
 function handleKeydown(event: KeyboardEvent) {
   if (event.key === 'Escape' && !showConfigDialog.value) {
     handleClose()
@@ -292,6 +298,9 @@ onUnmounted(() => {
             <span class="channel-badge" :class="{ warn: needsByokSetup }">{{ channelBadgeLabel }}</span>
           </div>
           <div class="panel-header-right">
+            <button class="config-trigger-btn" type="button" @click="handleOpenPromptHelper">
+              写简历提示词
+            </button>
             <button class="config-trigger-btn" type="button" @click="showConfigDialog = true">
               模型配置
             </button>
@@ -305,9 +314,14 @@ onUnmounted(() => {
           <p class="setup-banner-text">
             当前为纯前端直连模式，填写任意 OpenAI 兼容 API Key 即可立即体验 AI 简历优化。
           </p>
-          <button class="btn-setup" type="button" @click="showConfigDialog = true">
-            立即配置 API Key
-          </button>
+          <div class="setup-banner-actions">
+            <button class="btn-setup" type="button" @click="showConfigDialog = true">
+              立即配置 API Key
+            </button>
+            <button class="btn-setup-secondary" type="button" @click="handleOpenPromptHelper">
+              写简历提示词
+            </button>
+          </div>
         </div>
 
         <div class="selector-section">
@@ -534,8 +548,8 @@ onUnmounted(() => {
 }
 
 .config-trigger-btn {
-  height: 32px;
-  padding: 0 12px;
+  height: 30px;
+  padding: 0 10px;
   border-radius: var(--radius-md);
   border: 1px solid var(--color-border-default);
   background: var(--color-bg-subtle);
@@ -583,13 +597,32 @@ onUnmounted(() => {
   min-width: 200px;
 }
 
+.setup-banner-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
 .btn-setup {
-  height: 32px;
+  height: 30px;
   padding: 0 12px;
   border: none;
   border-radius: var(--radius-md);
   background: var(--color-brand);
   color: var(--color-text-inverse);
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.btn-setup-secondary {
+  height: 30px;
+  padding: 0 10px;
+  border: 1px solid var(--color-brand);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-panel);
+  color: var(--color-brand-text);
   font-size: var(--font-size-xs);
   font-weight: 700;
   cursor: pointer;
